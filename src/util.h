@@ -52,6 +52,7 @@ extern bool fLogTimestamps;
 extern bool fLogTimeMicros;
 extern bool fLogIPs;
 extern std::atomic<bool> fReopenDebugLog;
+extern std::atomic<bool> fReopenOmniCoreLiteLog;
 extern CTranslationInterface translationInterface;
 
 extern const char * const BITCOIN_CONF_FILENAME;

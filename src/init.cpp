@@ -93,6 +93,11 @@ enum BindFlags {
 
 static const char* FEE_ESTIMATES_FILENAME="fee_estimates.dat";
 
+// Omni Core Lite initialization and shutdown handlers
+extern int mastercore_init();
+extern int mastercore_shutdown();
+extern int CheckWalletUpdate(bool forceUpdate = false);
+
 //////////////////////////////////////////////////////////////////////////////
 //
 // Shutdown
@@ -225,6 +230,10 @@ void Shutdown()
         delete pblocktree;
         pblocktree = NULL;
     }
+
+    //! Omni Core Lite shutdown
+    mastercore_shutdown();
+
 #ifdef ENABLE_WALLET
     if (pwalletMain)
         pwalletMain->Flush(true);
@@ -266,6 +275,7 @@ void HandleSIGTERM(int)
 void HandleSIGHUP(int)
 {
     fReopenDebugLog = true;
+    fReopenOmniCoreLiteLog = true;
 }
 
 bool static Bind(const CService &addr, unsigned int flags) {
@@ -476,13 +486,32 @@ std::string HelpMessage(HelpMessageMode mode)
         strUsage += HelpMessageOpt("-rpcservertimeout=<n>", strprintf("Timeout during HTTP requests (default: %d)", DEFAULT_HTTP_SERVER_TIMEOUT));
     }
 
+    // TODO: append help messages somewhere else
+    // TODO: translation
+    strUsage += HelpMessageGroup("Omni options:");
+    strUsage += HelpMessageOpt("-startclean", "Clear all persistence files on startup; triggers reparsing of Omni transactions (default: 0)");
+    strUsage += HelpMessageOpt("-omnitxcache", "The maximum number of transactions in the input transaction cache (default: 500000)");
+    strUsage += HelpMessageOpt("-omniprogressfrequency", "Time in seconds after which the initial scanning progress is reported (default: 30)");
+    strUsage += HelpMessageOpt("-omniseedblockfilter", "Set skipping of blocks without Omni transactions during initial scan (default: 1)");
+    strUsage += HelpMessageOpt("-omnilogfile", "The path of the log file (default: omnicore.log)");
+    strUsage += HelpMessageOpt("-omnidebug=<category>", "Enable or disable log categories, can be \"all\" or \"none\"");
+    strUsage += HelpMessageOpt("-autocommit", "Enable or disable broadcasting of transactions, when creating transactions (default: 1)");
+    strUsage += HelpMessageOpt("-overrideforcedshutdown", "Overwrite shutdown, triggered by an alert (default: 0)");
+    strUsage += HelpMessageOpt("-omnialertallowsender", "Whitelist senders of alerts, can be \"any\")");
+    strUsage += HelpMessageOpt("-omnialertignoresender", "Ignore senders of alerts");
+    strUsage += HelpMessageOpt("-omniactivationignoresender", "Ignore senders of activations");
+    strUsage += HelpMessageOpt("-omniactivationallowsender", "Whitelist senders of activations");
+    strUsage += HelpMessageOpt("-disclaimer", "Explicitly show QT disclaimer on startup (default: 0)");
+    strUsage += HelpMessageOpt("-omniuiwalletscope", "Max. transactions to show in transaction history (default: 65535)");
+
     return strUsage;
 }
 
 std::string LicenseInfo()
 {
-    const std::string URL_SOURCE_CODE = "<https://github.com/litecoin-project/litecoin>";
-    const std::string URL_WEBSITE = "<https://litecoin.org>";
+    const std::string URL_SOURCE_CODE = "<https://github.com/OmniLayer/omnicore>";
+    const std::string URL_WEBSITE = "<http://omnilayer.org>";
+
     // todo: remove urls from translations on next change
     return CopyrightHolders(strprintf(_("Copyright (C) %i-%i"), 2011, COPYRIGHT_YEAR) + " ") + "\n" +
            "\n" +
@@ -1426,6 +1455,47 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
         mempool.ReadFeeEstimates(est_filein);
     fFeeEstimatesInitialized = true;
 
+    // ********************************************************* Step 7.5: load omni core lite
+
+    if (!fTxIndex) {
+        // ask the user if they would like us to modify their config file for them
+        std::string msg = _("Disabled transaction index detected.\n\n"
+                            "Omni Core Lite requires an enabled transaction index. To enable "
+                            "transaction indexing, please use the \"-txindex\" option as "
+                            "command line argument or add \"txindex=1\" to your client "
+                            "configuration file within your data directory.\n\n"
+                            "Configuration file"); // allow translation of main text body while still allowing differing config file string
+        msg += ": " + GetConfigFile().string() + "\n\n";
+        msg += _("Would you like Omni Core Lite to attempt to update your configuration file accordingly?");
+        bool fRet = uiInterface.ThreadSafeMessageBox(msg, "", CClientUIInterface::MSG_INFORMATION | CClientUIInterface::BTN_OK | CClientUIInterface::MODAL | CClientUIInterface::BTN_ABORT);
+        if (fRet) {
+            // add txindex=1 to config file in GetConfigFile()
+            boost::filesystem::path configPathInfo = GetConfigFile();
+            FILE *fp = fopen(configPathInfo.string().c_str(), "at");
+            if (!fp) {
+                std::string failMsg = _("Unable to update configuration file at");
+                failMsg += ":\n" + GetConfigFile().string() + "\n\n";
+                failMsg += _("The file may be write protected or you may not have the required permissions to edit it.\n");
+                failMsg += _("Please add txindex=1 to your configuration file manually.\n\nOmni Core Lite will now shutdown.");
+                return InitError(failMsg);
+            }
+            fprintf(fp, "\ntxindex=1\n");
+            fflush(fp);
+            fclose(fp);
+            std::string strUpdated = _(
+                    "Your configuration file has been updated.\n\n"
+                    "Omni Core Lite will now shutdown - please restart the client for your new configuration to take effect.");
+            uiInterface.ThreadSafeMessageBox(strUpdated, "", CClientUIInterface::MSG_INFORMATION | CClientUIInterface::BTN_OK | CClientUIInterface::MODAL);
+            return false;
+        } else {
+            return InitError(_("Please add txindex=1 to your configuration file manually.\n\nOmni Core Lite will now shutdown."));
+        }
+    }
+
+    uiInterface.InitMessage(_("Parsing Omni Lite transactions..."));
+
+    mastercore_init();
+
     // ********************************************************* Step 8: load wallet
 #ifdef ENABLE_WALLET
     if (fDisableWallet) {
@@ -1436,9 +1506,13 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
         if (!pwalletMain)
             return false;
     }
+
 #else // ENABLE_WALLET
     LogPrintf("No wallet support compiled in!\n");
 #endif // !ENABLE_WALLET
+
+    // Omni Core Lite code should be initialized and wallet should now be loaded, perform an initial populat$
+    CheckWalletUpdate();
 
     // ********************************************************* Step 9: data directory maintenance
 
