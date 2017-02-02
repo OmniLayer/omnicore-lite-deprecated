@@ -1,3 +1,7 @@
+Note, first and very rough version of Omni Core Lite.  Feel free to test but this is still a work in progress.  Thanks.
+
+
+
 Litecoin Core integration/staging tree
 =====================================
 
