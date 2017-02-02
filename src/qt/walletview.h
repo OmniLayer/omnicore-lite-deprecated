@@ -9,6 +9,9 @@
 
 #include <QStackedWidget>
 
+class BalancesDialog;
+class SendMPDialog;
+
 class BitcoinGUI;
 class ClientModel;
 class OverviewPage;
@@ -23,6 +26,7 @@ class AddressBookPage;
 QT_BEGIN_NAMESPACE
 class QModelIndex;
 class QProgressDialog;
+class QTabWidget;
 QT_END_NAMESPACE
 
 /*
@@ -59,9 +63,14 @@ private:
     WalletModel *walletModel;
 
     OverviewPage *overviewPage;
+    BalancesDialog *balancesPage;
     QWidget *transactionsPage;
     ReceiveCoinsDialog *receiveCoinsPage;
-    SendCoinsDialog *sendCoinsPage;
+
+    QWidget *sendCoinsPage;
+    SendCoinsDialog *sendCoinsTab;
+    SendMPDialog *sendMPTab;
+
     AddressBookPage *usedSendingAddressesPage;
     AddressBookPage *usedReceivingAddressesPage;
 
@@ -70,9 +79,13 @@ private:
     QProgressDialog *progressDialog;
     const PlatformStyle *platformStyle;
 
+    QTabWidget *sendTabHolder;
+
 public Q_SLOTS:
     /** Switch to overview (home) page */
     void gotoOverviewPage();
+    /** Switch to balances page */
+    void gotoBalancesPage();
     /** Switch to history (transactions) page */
     void gotoHistoryPage();
     /** Switch to receive coins page */

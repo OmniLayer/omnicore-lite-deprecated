@@ -18,15 +18,21 @@
 #include "transactiontablemodel.h"
 #include "transactionview.h"
 #include "walletmodel.h"
-
 #include "ui_interface.h"
+
+#include "balancesdialog.h"
+#include "sendmpdialog.h"
 
 #include <QAction>
 #include <QActionGroup>
+#include <QDebug>
+#include <QDialog>
 #include <QFileDialog>
+#include <QHeaderView>
 #include <QHBoxLayout>
 #include <QProgressDialog>
 #include <QPushButton>
+#include <QTableView>
 #include <QVBoxLayout>
 
 WalletView::WalletView(const PlatformStyle *platformStyle, QWidget *parent):
@@ -54,12 +60,24 @@ WalletView::WalletView(const PlatformStyle *platformStyle, QWidget *parent):
     transactionsPage->setLayout(vbox);
 
     receiveCoinsPage = new ReceiveCoinsDialog(platformStyle);
-    sendCoinsPage = new SendCoinsDialog(platformStyle);
+
+    sendCoinsPage = new QWidget(this);
+    QVBoxLayout *svbox = new QVBoxLayout();
+    sendCoinsTab = new SendCoinsDialog(platformStyle);
+    sendMPTab = new SendMPDialog();
+    sendTabHolder = new QTabWidget();
+    sendTabHolder->addTab(sendMPTab,tr("Omni Layer"));
+    sendTabHolder->addTab(sendCoinsTab,tr("Litecoin"));
+    svbox->addWidget(sendTabHolder);
+    sendCoinsPage->setLayout(svbox);
+
+    balancesPage = new BalancesDialog();
 
     usedSendingAddressesPage = new AddressBookPage(platformStyle, AddressBookPage::ForEditing, AddressBookPage::SendingTab, this);
     usedReceivingAddressesPage = new AddressBookPage(platformStyle, AddressBookPage::ForEditing, AddressBookPage::ReceivingTab, this);
 
     addWidget(overviewPage);
+    addWidget(balancesPage);
     addWidget(transactionsPage);
     addWidget(receiveCoinsPage);
     addWidget(sendCoinsPage);
@@ -73,8 +91,9 @@ WalletView::WalletView(const PlatformStyle *platformStyle, QWidget *parent):
     // Clicking on "Export" allows to export the transaction list
     connect(exportButton, SIGNAL(clicked()), transactionView, SLOT(exportClicked()));
 
-    // Pass through messages from sendCoinsPage
-    connect(sendCoinsPage, SIGNAL(message(QString,QString,unsigned int)), this, SIGNAL(message(QString,QString,unsigned int)));
+    // Pass through messages from sendCoinsTab
+    connect(sendCoinsTab, SIGNAL(message(QString,QString,unsigned int)), this, SIGNAL(message(QString,QString,unsigned int)));
+
     // Pass through messages from transactionView
     connect(transactionView, SIGNAL(message(QString,QString,unsigned int)), this, SIGNAL(message(QString,QString,unsigned int)));
 }
@@ -106,7 +125,8 @@ void WalletView::setClientModel(ClientModel *clientModel)
     this->clientModel = clientModel;
 
     overviewPage->setClientModel(clientModel);
-    sendCoinsPage->setClientModel(clientModel);
+    balancesPage->setClientModel(clientModel);
+    sendMPTab->setClientModel(clientModel);
 }
 
 void WalletView::setWalletModel(WalletModel *walletModel)
@@ -117,9 +137,11 @@ void WalletView::setWalletModel(WalletModel *walletModel)
     transactionView->setModel(walletModel);
     overviewPage->setWalletModel(walletModel);
     receiveCoinsPage->setModel(walletModel);
-    sendCoinsPage->setModel(walletModel);
     usedReceivingAddressesPage->setModel(walletModel->getAddressTableModel());
     usedSendingAddressesPage->setModel(walletModel->getAddressTableModel());
+    sendCoinsTab->setModel(walletModel);
+    sendMPTab->setWalletModel(walletModel);
+    balancesPage->setWalletModel(walletModel);
 
     if (walletModel)
     {
@@ -167,6 +189,11 @@ void WalletView::gotoOverviewPage()
     setCurrentWidget(overviewPage);
 }
 
+void WalletView::gotoBalancesPage()
+{
+    setCurrentWidget(balancesPage);
+}
+
 void WalletView::gotoHistoryPage()
 {
     setCurrentWidget(transactionsPage);
@@ -182,7 +209,7 @@ void WalletView::gotoSendCoinsPage(QString addr)
     setCurrentWidget(sendCoinsPage);
 
     if (!addr.isEmpty())
-        sendCoinsPage->setAddress(addr);
+        sendCoinsTab->setAddress(addr);
 }
 
 void WalletView::gotoSignMessageTab(QString addr)
@@ -211,7 +238,8 @@ void WalletView::gotoVerifyMessageTab(QString addr)
 
 bool WalletView::handlePaymentRequest(const SendCoinsRecipient& recipient)
 {
-    return sendCoinsPage->handlePaymentRequest(recipient);
+    sendTabHolder->setCurrentIndex(1);
+    return sendCoinsTab->handlePaymentRequest(recipient);
 }
 
 void WalletView::showOutOfSyncWarning(bool fShow)
