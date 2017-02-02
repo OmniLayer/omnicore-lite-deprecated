@@ -153,8 +153,39 @@ BITCOIN_CORE_H = \
   zmq/zmqabstractnotifier.h \
   zmq/zmqconfig.h\
   zmq/zmqnotificationinterface.h \
-  zmq/zmqpublishnotifier.h
-
+  zmq/zmqpublishnotifier.h \
+  omnicore/log.h \
+  omnicore/omnicore.h \
+  omnicore/persistence.h \
+  omnicore/tally.h \
+  omnicore/activation.h \
+  omnicore/consensushash.h \
+  omnicore/convert.h \
+  omnicore/encoding.h \
+  omnicore/errors.h \
+  omnicore/notifications.h \
+  omnicore/pending.h \
+  omnicore/rules.h \
+  omnicore/script.h \
+  omnicore/sp.h \
+  omnicore/tx.h \
+  omnicore/utilsbitcoin.h \
+  omnicore/version.h \
+  omnicore/walletcache.h \
+  omnicore/wallettxs.h \
+  omnicore/uint256_extensions.h \
+  omnicore/rpcrawtx.h \
+  omnicore/createtx.h \
+  omnicore/rpc.h \
+  omnicore/rpctxobject.h \
+  omnicore/rpcvalues.h \
+  omnicore/fetchwallettx.h \
+  omnicore/rpcrequirements.h \
+  omnicore/rpctx.h \
+  omnicore/parse_string.h \
+  omnicore/createpayload.h \
+  omnicore/rpcpayload.h \
+  omnicore/varint.h
 
 obj/build.h: FORCE
 	@$(MKDIR_P) $(builddir)/obj
@@ -199,6 +230,36 @@ libbitcoin_server_a_SOURCES = \
   ui_interface.cpp \
   validationinterface.cpp \
   versionbits.cpp \
+  omnicore/log.cpp \
+  omnicore/omnicore.cpp \
+  omnicore/persistence.cpp \
+  omnicore/tally.cpp \
+  omnicore/activation.cpp \
+  omnicore/consensushash.cpp \
+  omnicore/convert.cpp \
+  omnicore/encoding.cpp \
+  omnicore/notifications.cpp \
+  omnicore/pending.cpp \
+  omnicore/rules.cpp \
+  omnicore/script.cpp \
+  omnicore/sp.cpp \
+  omnicore/tx.cpp \
+  omnicore/utilsbitcoin.cpp \
+  omnicore/version.cpp \
+  omnicore/walletcache.cpp \
+  omnicore/wallettxs.cpp \
+  omnicore/rpcrawtx.cpp \
+  omnicore/createtx.cpp \
+  omnicore/rpc.cpp \
+  omnicore/rpctxobject.cpp \
+  omnicore/rpcvalues.cpp \
+  omnicore/fetchwallettx.cpp \
+  omnicore/rpcrequirements.cpp \
+  omnicore/rpctx.cpp \
+  omnicore/parse_string.cpp \
+  omnicore/createpayload.cpp \
+  omnicore/rpcpayload.cpp \
+  omnicore/varint.cpp \
   $(BITCOIN_CORE_H)
 
 if ENABLE_ZMQ
