@@ -390,7 +390,7 @@ void CheckWalletUpdate(bool forceUpdate)
     if (!WalletCacheUpdate()) {
         // no balance changes were detected that affect wallet addresses, signal a generic change to overall Omni state
         if (!forceUpdate) {
-            //uiInterface.OmniStateChanged();
+            uiInterface.OmniStateChanged();
             return;
         }
     }
@@ -419,7 +419,7 @@ void CheckWalletUpdate(bool forceUpdate)
         }
     }
     // signal an Omni balance change
-    //uiInterface.OmniBalanceChanged();
+    uiInterface.OmniBalanceChanged();
 #endif
 }
 
@@ -469,7 +469,7 @@ int mastercore::GetEncodingClass(const CTransaction& tx, int nBlock)
 
         if (outType == TX_NULL_DATA) {
             // Ensure there is a payload, and the first pushed element equals,
-            // or starts with the "omni" marker
+            // or starts with the "ol" marker
             std::vector<std::string> scriptPushes;
             if (!GetScriptPushes(output.scriptPubKey, scriptPushes)) {
                 continue;
@@ -824,7 +824,7 @@ public:
                 nCurrentBlock, nLastBlock, dProgress, remainingTimeAsString(nRemainingTime));
 
         PrintToConsole(strProgress);
-        //uiInterface.InitMessage(strProgressUI);
+        uiInterface.InitMessage(strProgressUI);
     }
 };
 
@@ -2246,7 +2246,7 @@ int mastercore_handler_block_begin(int nBlockPrev, CBlockIndex const * pBlockInd
         // clear the global wallet property list, perform a forced wallet update and tell the UI that state is no longer valid, and UI views need to be reinit
         global_wallet_property_list.clear();
         CheckWalletUpdate(true);
-        //uiInterface.OmniStateInvalidated();
+        uiInterface.OmniStateInvalidated();
 
         if (nWaterlineBlock < nBlockPrev) {
             // scan from the block after the best active block to catch up to the active chain
