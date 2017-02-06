@@ -208,11 +208,11 @@ public:
 
         if (omniOverride) {
             if (!valid) {
-                icon = QIcon(":/icons/omni_invalid");
+                icon = QIcon(":/icons/omniinvalid");
             } else {
-                icon = QIcon(":/icons/omni_out");
-                if (!omniOutbound) icon = QIcon(":/icons/omni_in");
-                if (omniSendToSelf) icon = QIcon(":/icons/omni_inout");
+                icon = QIcon(":/icons/omniout");
+                if (!omniOutbound) icon = QIcon(":/icons/omniin");
+                if (omniSendToSelf) icon = QIcon(":/icons/omniinout");
             }
         }
 
