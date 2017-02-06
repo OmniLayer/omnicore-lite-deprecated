@@ -17,6 +17,7 @@
 #include "signverifymessagedialog.h"
 #include "transactiontablemodel.h"
 #include "transactionview.h"
+#include "txhistorydialog.h"
 #include "walletmodel.h"
 #include "ui_interface.h"
 
@@ -45,6 +46,7 @@ WalletView::WalletView(const PlatformStyle *platformStyle, QWidget *parent):
     overviewPage = new OverviewPage(platformStyle);
 
     transactionsPage = new QWidget(this);
+    litecoinTXTab = new QWidget(this);
     QVBoxLayout *vbox = new QVBoxLayout();
     QHBoxLayout *hbox_buttons = new QHBoxLayout();
     transactionView = new TransactionView(platformStyle, this);
@@ -57,7 +59,15 @@ WalletView::WalletView(const PlatformStyle *platformStyle, QWidget *parent):
     hbox_buttons->addStretch();
     hbox_buttons->addWidget(exportButton);
     vbox->addLayout(hbox_buttons);
-    transactionsPage->setLayout(vbox);
+    litecoinTXTab->setLayout(vbox);
+    mpTXTab = new TXHistoryDialog;
+    transactionsPage = new QWidget(this);
+    QVBoxLayout *txvbox = new QVBoxLayout();
+    txTabHolder = new QTabWidget();
+    txTabHolder->addTab(mpTXTab,tr("Omni Lite"));
+    txTabHolder->addTab(litecoinTXTab,tr("Litecoin"));
+    txvbox->addWidget(txTabHolder);
+    transactionsPage->setLayout(txvbox);
 
     receiveCoinsPage = new ReceiveCoinsDialog(platformStyle);
 
@@ -127,6 +137,7 @@ void WalletView::setClientModel(ClientModel *clientModel)
     overviewPage->setClientModel(clientModel);
     balancesPage->setClientModel(clientModel);
     sendMPTab->setClientModel(clientModel);
+//    mpTXTab->setClientModel(clientModel);
 }
 
 void WalletView::setWalletModel(WalletModel *walletModel)
@@ -142,6 +153,7 @@ void WalletView::setWalletModel(WalletModel *walletModel)
     sendCoinsTab->setModel(walletModel);
     sendMPTab->setWalletModel(walletModel);
     balancesPage->setWalletModel(walletModel);
+//    mpTXTab->setWalletModel(walletModel);
 
     if (walletModel)
     {
@@ -198,6 +210,19 @@ void WalletView::gotoHistoryPage()
 {
     setCurrentWidget(transactionsPage);
 }
+
+void WalletView::gotoLitecoinHistoryTab()
+{
+    setCurrentWidget(transactionsPage);
+    txTabHolder->setCurrentIndex(1);
+}
+
+void WalletView::gotoOmniHistoryTab()
+{
+    setCurrentWidget(transactionsPage);
+    txTabHolder->setCurrentIndex(0);
+}
+
 
 void WalletView::gotoReceiveCoinsPage()
 {

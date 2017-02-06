@@ -57,6 +57,10 @@ public Q_SLOTS:
     void gotoBalancesPage();
     /** Switch to history (transactions) page */
     void gotoHistoryPage();
+    /** Switch directory to Omni tx history tab */
+    void gotoOmniHistoryTab();
+    /** Switch directory to bitcoin tx history tab */
+    void gotoLitecoinHistoryTab();
     /** Switch to receive coins page */
     void gotoReceiveCoinsPage();
     /** Switch to send coins page */

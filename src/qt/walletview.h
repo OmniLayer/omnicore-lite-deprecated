@@ -22,6 +22,7 @@ class SendCoinsRecipient;
 class TransactionView;
 class WalletModel;
 class AddressBookPage;
+class TXHistoryDialog;
 
 QT_BEGIN_NAMESPACE
 class QModelIndex;
@@ -76,9 +77,13 @@ private:
 
     TransactionView *transactionView;
 
+    TXHistoryDialog *mpTXTab;
+    QWidget *litecoinTXTab;
+
     QProgressDialog *progressDialog;
     const PlatformStyle *platformStyle;
 
+    QTabWidget *txTabHolder;
     QTabWidget *sendTabHolder;
 
 public Q_SLOTS:
@@ -88,6 +93,10 @@ public Q_SLOTS:
     void gotoBalancesPage();
     /** Switch to history (transactions) page */
     void gotoHistoryPage();
+    /** Switch specifically to omni tx history tab */
+    void gotoOmniHistoryTab();
+    /** Switch specifically to litecoin tx history tab */
+    void gotoLitecoinHistoryTab();
     /** Switch to receive coins page */
     void gotoReceiveCoinsPage();
     /** Switch to send coins page */
