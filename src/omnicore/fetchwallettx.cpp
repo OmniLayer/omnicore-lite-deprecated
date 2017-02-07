@@ -83,7 +83,7 @@ std::map<std::string, uint256> FetchWalletOmniTransactions(unsigned int count, i
         int blockHeight = pBlockIndex->nHeight;
         if (blockHeight < startBlock || blockHeight > endBlock) continue;
         int blockPosition = GetTransactionByteOffset(txHash);
-        std::string sortKey = strprintf("%06d%010d", blockHeight, blockPosition);
+        std::string sortKey = strprintf("%07d%010d", blockHeight, blockPosition);
         mapResponse.insert(std::make_pair(sortKey, txHash));
         seenHashes.insert(txHash);
         if (mapResponse.size() >= count) break;
@@ -94,7 +94,7 @@ std::map<std::string, uint256> FetchWalletOmniTransactions(unsigned int count, i
     // LOCK(cs_pending);
     for (PendingMap::const_iterator it = my_pending.begin(); it != my_pending.end(); ++it) {
         const uint256& txHash = it->first;
-        int blockHeight = 999999;
+        int blockHeight = 9999999;
         if (blockHeight < startBlock || blockHeight > endBlock) continue;
         int blockPosition = 0;
         {
@@ -105,7 +105,7 @@ std::map<std::string, uint256> FetchWalletOmniTransactions(unsigned int count, i
                 blockPosition = wtx.nOrderPos;
             }
         }
-        std::string sortKey = strprintf("%06d%010d", blockHeight, blockPosition);
+        std::string sortKey = strprintf("%07d%010d", blockHeight, blockPosition);
         mapResponse.insert(std::make_pair(sortKey, txHash));
     }
 #endif

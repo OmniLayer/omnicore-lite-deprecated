@@ -227,7 +227,9 @@ int TXHistoryDialog::PopulateHistoryMap()
             const CMPPending& pending = pending_it->second;
             HistoryTXObject htxo;
             htxo.blockHeight = 0;
-            if (it->first.length() == 16) htxo.blockByteOffset = atoi(it->first.substr(6)); // use wallet position from key in lieu of block position
+            if (it->first.length() == 17) {
+                htxo.blockByteOffset = atoi(it->first.substr(7)); // use wallet position from key in lieu of block position
+            }
             htxo.valid = true; // all pending transactions are assumed to be valid prior to confirmation (wallet would not send them otherwise)
             htxo.address = pending.src;
             htxo.amount = "-" + FormatShortMP(pending.prop, pending.amount) + getTokenLabel(pending.prop);
@@ -248,9 +250,9 @@ int TXHistoryDialog::PopulateHistoryMap()
         CMPTransaction mp_obj;
         int parseRC = ParseTransaction(wtx, blockHeight, 0, mp_obj);
         HistoryTXObject htxo;
-        if (it->first.length() == 16) {
-            htxo.blockHeight = atoi(it->first.substr(0,6));
-            htxo.blockByteOffset = atoi(it->first.substr(6));
+        if (it->first.length() == 17) {
+            htxo.blockHeight = atoi(it->first.substr(0,7));
+            htxo.blockByteOffset = atoi(it->first.substr(7));
         }
 
         // handle Omni transaction
@@ -365,8 +367,8 @@ void TXHistoryDialog::UpdateHistory()
                 QTableWidgetItem *amountCell = new QTableWidgetItem(QString::fromStdString(htxo.amount));
                 QTableWidgetItem *iconCell = new QTableWidgetItem;
                 QTableWidgetItem *txidCell = new QTableWidgetItem(QString::fromStdString(txid.GetHex()));
-                std::string sortKey = strprintf("%06d%010d",htxo.blockHeight,htxo.blockByteOffset);
-                if(htxo.blockHeight == 0) sortKey = strprintf("%06d%010D",999999,htxo.blockByteOffset); // spoof the hidden value to ensure pending txs are sorted top
+                std::string sortKey = strprintf("%07d%010d",htxo.blockHeight,htxo.blockByteOffset);
+                if(htxo.blockHeight == 0) sortKey = strprintf("%07d%010D",9999999,htxo.blockByteOffset); // spoof the hidden value to ensure pending txs are sorted top
                 QTableWidgetItem *sortKeyCell = new QTableWidgetItem(QString::fromStdString(sortKey));
                 addressCell->setTextAlignment(Qt::AlignLeft + Qt::AlignVCenter);
                 addressCell->setForeground(QColor("#707070"));

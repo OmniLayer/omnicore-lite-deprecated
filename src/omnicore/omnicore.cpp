@@ -853,7 +853,7 @@ static int msc_initial_scan(int nFirstBlock)
     int64_t nNow = GetTime();
     unsigned int nTxsTotal = 0;
     unsigned int nTxsFoundTotal = 0;
-    int nBlock = 999999;
+    int nBlock = 9999999;
     const int nLastBlock = GetHeight();
 
     // this function is useless if there are not enough blocks in the blockchain yet!
