@@ -170,10 +170,20 @@ public:
                                     valid = getValidMPTX(hash);
                                     uint32_t omniPropertyId = mp_obj.getProperty();
                                     int64_t omniAmount = mp_obj.getAmount();
-                                    if (isPropertyDivisible(omniPropertyId)) {
-                                        omniAmountStr = QString::fromStdString(FormatDivisibleShortMP(omniAmount) + getTokenLabel(omniPropertyId));
+                                    bool divis = isPropertyDivisible(omniPropertyId);
+                                    std::string tokenLabel = getTokenLabel(omniPropertyId);
+                                    if (omniPropertyId == 0) {
+                                        tokenLabel = " NEW TOKENS";
+                                        if (mp_obj.getPropertyType() == MSC_PROPERTY_TYPE_INDIVISIBLE) {
+                                            divis = false;
+                                        } else {
+                                            divis = true;
+                                        }
+                                    }
+                                    if (divis) {
+                                        omniAmountStr = QString::fromStdString(FormatDivisibleShortMP(omniAmount) + tokenLabel);
                                     } else {
-                                        omniAmountStr = QString::fromStdString(FormatIndivisibleMP(omniAmount) + getTokenLabel(omniPropertyId));
+                                        omniAmountStr = QString::fromStdString(FormatIndivisibleMP(omniAmount) + tokenLabel);
                                     }
                                     if (!mp_obj.getReceiver().empty()) {
                                         if (IsMyAddress(mp_obj.getReceiver())) {
