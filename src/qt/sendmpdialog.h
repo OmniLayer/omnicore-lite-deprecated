@@ -37,6 +37,10 @@ public:
     void updateProperty();
     void updatePropSelector();
 
+    bool txConfirmation(std::string strMsgText);
+    bool sufficientBalance(std::string address, uint32_t propertyId, int64_t amount);
+    void hideAll();
+
 public Q_SLOTS:
     void typeComboBoxChanged(int idx);
     void propertyComboBoxChanged(int idx);

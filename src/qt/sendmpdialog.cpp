@@ -2,7 +2,6 @@
  * DESIGN DRAFT - Mostly non-functional
  **/
 
-
 // Copyright (c) 2011-2014 The Bitcoin developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
@@ -33,6 +32,7 @@
 #include "wallet/wallet.h"
 
 #include <stdint.h>
+
 #include <map>
 #include <sstream>
 #include <string>
@@ -44,6 +44,8 @@
 #include <QMessageBox>
 #include <QString>
 #include <QWidget>
+
+#include <boost/lexical_cast.hpp>
 
 using std::ostringstream;
 using std::string;
@@ -64,6 +66,7 @@ SendMPDialog::SendMPDialog(QWidget *parent) :
     ui->clearButton->setIcon(QIcon());
     ui->sendButton->setIcon(QIcon());
 #endif
+
 #if QT_VERSION >= 0x040700 // populate placeholder text
     ui->sendToLineEdit->setPlaceholderText("Enter an Omni Layer Lite address (e.g. LLomniqvhCKdMEQNkezXH71tmrvfxCL5Ju)");
     ui->amountLineEdit->setPlaceholderText("Enter Amount");
@@ -78,13 +81,16 @@ SendMPDialog::SendMPDialog(QWidget *parent) :
     ui->typeCombo->addItem("Grant Tokens","55");
     ui->typeCombo->addItem("Revoke Tokens","56");
     ui->typeCombo->addItem("Change Issuer","70");
-
     ui->typeCombo->hide();
+
     ui->typeLabel->setText("Simple Send");
 
     ui->wgtCrowd->hide();
     ui->wgtProp->hide();
     ui->wgtPropOptions->hide();
+
+    ui->chkTestEco->setCheckState(Qt::Checked);
+    ui->chkTestEco->setEnabled(false); // only test ecosystem supported in this build
 
     // connect actions
     connect(ui->propertyComboBox, SIGNAL(activated(int)), this, SLOT(propertyComboBoxChanged(int)));
@@ -195,26 +201,51 @@ void SendMPDialog::updateFrom()
 
 void SendMPDialog::updateProperty()
 {
+    uint32_t propertyId = 0;
+
     // cache currently selected from address & clear address selector
     std::string currentSetFromAddress = ui->sendFromComboBox->currentText().toStdString();
     ui->sendFromComboBox->clear();
 
-    // populate from address selector
-    QString spId = ui->propertyComboBox->itemData(ui->propertyComboBox->currentIndex()).toString();
-    uint32_t propertyId = spId.toUInt();
-    LOCK(cs_tally);
-    for (std::unordered_map<string, CMPTally>::iterator my_it = mp_tally_map.begin(); my_it != mp_tally_map.end(); ++my_it) {
-        string address = (my_it->first).c_str();
-        uint32_t id = 0;
-        bool includeAddress=false;
-        (my_it->second).init();
-        while (0 != (id = (my_it->second).next())) {
-            if(id == propertyId) { includeAddress=true; break; }
+    // populate from address selector using wallet
+    QString typeIdStr = ui->typeCombo->itemData(ui->typeCombo->currentIndex()).toString();
+    if (typeIdStr.toStdString().empty()) return;
+    uint32_t typeId = typeIdStr.toUInt();
+    if (typeId == MSC_TYPE_CREATE_PROPERTY_FIXED || typeId == MSC_TYPE_CREATE_PROPERTY_VARIABLE || typeId == MSC_TYPE_CREATE_PROPERTY_MANUAL) {
+        std::set<std::string> setAddresses;
+        std::vector<COutput> vecOutputs;
+        assert(pwalletMain != NULL);
+        LOCK2(cs_main, pwalletMain->cs_wallet);
+        pwalletMain->AvailableCoins(vecOutputs, false, NULL, true);
+        BOOST_FOREACH(const COutput& out, vecOutputs) {
+            CTxDestination address;
+            const CScript& scriptPubKey = out.tx->vout[out.i].scriptPubKey;
+            bool fValid = ExtractDestination(scriptPubKey, address);
+            std::string strAddress = CBitcoinAddress(address).ToString();
+            if (fValid && !setAddresses.count(strAddress)) {
+                setAddresses.insert(strAddress);
+            }
         }
-        if (!includeAddress) continue; //ignore this address, has never transacted in this propertyId
-        if (IsMyAddress(address) != ISMINE_SPENDABLE) continue; // ignore this address, it's not spendable
-        if (!getUserAvailableMPbalance(address, propertyId)) continue; // ignore this address, has no available balance to spend
-        ui->sendFromComboBox->addItem(QString::fromStdString(address + " \t" + FormatMP(propertyId, getUserAvailableMPbalance(address, propertyId)) + getTokenLabel(propertyId)));
+        for (std::set<std::string>::iterator it = setAddresses.begin(); it != setAddresses.end(); ++it) {
+            ui->sendFromComboBox->addItem(QString::fromStdString(*it));
+        }
+    } else {
+        QString spId = ui->propertyComboBox->itemData(ui->propertyComboBox->currentIndex()).toString();
+        propertyId = spId.toUInt();
+        LOCK(cs_tally);
+        for (std::unordered_map<string, CMPTally>::iterator my_it = mp_tally_map.begin(); my_it != mp_tally_map.end(); ++my_it) {
+            string address = (my_it->first).c_str();
+            uint32_t id = 0;
+            bool includeAddress=false;
+            (my_it->second).init();
+            while (0 != (id = (my_it->second).next())) {
+                if(id == propertyId) { includeAddress=true; break; }
+            }
+            if (!includeAddress) continue; //ignore this address, has never transacted in this propertyId
+            if (IsMyAddress(address) != ISMINE_SPENDABLE) continue; // ignore this address, it's not spendable
+            if (!getUserAvailableMPbalance(address, propertyId)) continue; // ignore this address, has no available balance to spend
+            ui->sendFromComboBox->addItem(QString::fromStdString(address + " \t" + FormatMP(propertyId, getUserAvailableMPbalance(address, propertyId)) + getTokenLabel(propertyId)));
+        }
     }
 
     // attempt to set from address back to cached value
@@ -236,7 +267,6 @@ void SendMPDialog::sendMPTransaction()
     QString typeIdStr = ui->typeCombo->itemData(ui->typeCombo->currentIndex()).toString();
     if (typeIdStr.toStdString().empty()) return;
     uint32_t typeId = typeIdStr.toUInt();
-
     // obtain the selected sender & reference addresses
     string strFromAddress = ui->sendFromComboBox->currentText().toStdString();
     CBitcoinAddress fromAddress;
@@ -248,7 +278,7 @@ void SendMPDialog::sendMPTransaction()
         "The sender address selected is not valid.\n\nPlease double-check the transction details thoroughly before retrying your send transaction." );
         return;
     }
-    if (typeId == MSC_TYPE_SIMPLE_SEND || typeId == MSC_TYPE_SEND_ALL || typeId == MSC_TYPE_GRANT_PROPERTY_TOKENS) {
+    if (typeId == MSC_TYPE_SIMPLE_SEND || typeId == MSC_TYPE_SEND_ALL || typeId == MSC_TYPE_GRANT_PROPERTY_TOKENS || typeId == MSC_TYPE_CHANGE_ISSUER_ADDRESS) {
         // obtain the entered recipient address
         if (false == strRefAddress.empty()) refAddress.SetString(strRefAddress);
         if (!refAddress.IsValid()) {
@@ -272,22 +302,38 @@ void SendMPDialog::sendMPTransaction()
     }
 
     // obtain the metadata
-    std::string strPropName = ui->nameLE->text().toStdString();
-    std::string strPropURL = ui->urlLE->text().toStdString();
+    std::string strPropName = "";
+    std::string strPropURL = "";
+    if (typeId == MSC_TYPE_CREATE_PROPERTY_FIXED || typeId == MSC_TYPE_CREATE_PROPERTY_VARIABLE || typeId == MSC_TYPE_CREATE_PROPERTY_MANUAL) {
+        strPropName = ui->nameLE->text().toStdString();
+        strPropURL = ui->urlLE->text().toStdString();
+    }
 
     // obtain the ecosystem
-    bool testEco = false;
+    bool testEco = true;
+    uint8_t ecosystem = 2;
+    std::string strEco = "Test Ecosystem";
     if (typeId == MSC_TYPE_CREATE_PROPERTY_FIXED || typeId == MSC_TYPE_CREATE_PROPERTY_VARIABLE ||
         typeId == MSC_TYPE_CREATE_PROPERTY_MANUAL || typeId == MSC_TYPE_SEND_ALL) {
-        if (ui->chkTestEco->isChecked()) testEco = true;
+        if (!ui->chkTestEco->isChecked()) {
+            testEco = false;
+            ecosystem = 1;
+            strEco = "MainEcosystem";
+        }
     }
 
     // obtain the divisibility
     bool divisible = false;
+    uint16_t propertyType = 1;
+    std::string strPropType = "Indivisible";
     if (typeId == MSC_TYPE_CREATE_PROPERTY_FIXED || typeId == MSC_TYPE_CREATE_PROPERTY_VARIABLE || typeId == MSC_TYPE_CREATE_PROPERTY_MANUAL) {
         if (ui->chkDivisible->isChecked()) divisible = true;
     } else {
         divisible = isPropertyDivisible(propertyId);
+    }
+    if (divisible) {
+        propertyType = 2;
+        strPropType = "Divisible";
     }
 
     // obtain the amount
@@ -337,70 +383,130 @@ void SendMPDialog::sendMPTransaction()
 
     // ##### PER TX CHECKS & PAYLOAD CREATION #####
     std::vector<unsigned char> payload;
+    std::string strMsgText = "You are about to send the following transaction, please check the details thoroughly:\n\n";
 
         // == Simple Send
         if (typeId == MSC_TYPE_SIMPLE_SEND) {
-            // check if sending address has enough funds
-            int64_t balanceAvailable = getUserAvailableMPbalance(fromAddress.ToString(), propertyId); //getMPbalance(fromAddress.ToString(), propertyId, MONEY);
-            if (sendAmount>balanceAvailable) {
-                QMessageBox::critical( this, "Unable to send transaction",
-                "The selected sending address does not have a sufficient balance to cover the amount entered.\n\nPlease double-check the transction details thoroughly before retrying your send transaction." );
-                return;
-            }
-            // validation checks all look ok, let's throw up a confirmation dialog
-            string strMsgText = "You are about to send the following transaction, please check the details thoroughly:\n\n";
-            string propDetails = getPropertyName(propertyId).c_str();
-            string spNum = strprintf("%d", propertyId);
-            propDetails += " (#" + spNum + ")";
-            strMsgText += "From: " + fromAddress.ToString() + "\nTo: " + refAddress.ToString() + "\nProperty: " + propDetails + "\nAmount that will be sent: ";
-            if (divisible) { strMsgText += FormatDivisibleMP(sendAmount); } else { strMsgText += FormatIndivisibleMP(sendAmount); }
-            strMsgText += "\n\nAre you sure you wish to send this transaction?";
-            QString msgText = QString::fromStdString(strMsgText);
-            QMessageBox::StandardButton responseClick;
-            responseClick = QMessageBox::question(this, "Confirm send transaction", msgText, QMessageBox::Yes|QMessageBox::No);
-            if (responseClick == QMessageBox::No) {
-                QMessageBox::critical( this, "Send transaction cancelled",
-                "The send transaction has been cancelled.\n\nPlease double-check the transction details thoroughly before retrying your send transaction." );
-                return;
-            }
-            // create a payload for the transaction
+            if (!sufficientBalance(fromAddress.ToString(), propertyId, sendAmount)) return;
+            std::string propDetails = getPropertyName(propertyId) + getTokenLabel(propertyId);
+            strMsgText += "Type: Simple Send\n\n";
+            strMsgText += "From: " + fromAddress.ToString() + "\n";
+            strMsgText += "To: " + refAddress.ToString() + "\n";
+            strMsgText += "Property: " + propDetails + "\n";
+            strMsgText += "Amount that will be sent: " + FormatByType(sendAmount, divisible) + "\n";
+            if (!txConfirmation(strMsgText)) return;
             payload = CreatePayload_SimpleSend(propertyId, sendAmount);
         }
+
+        // == Send All
+        if (typeId == MSC_TYPE_SEND_ALL) {
+            strMsgText += "Type: Send All\n\n";
+            strMsgText += "From: " + fromAddress.ToString() + "\n";
+            strMsgText += "To: " + refAddress.ToString() + "\n";
+            strMsgText += "Ecosystem: " + strEco + "\n";
+            strMsgText += "Property: *All Properties*\n";
+            strMsgText += "Amount: *All Tokens*\n";
+            if (!txConfirmation(strMsgText)) return;
+            payload = CreatePayload_SendAll(ecosystem);
+        }
+
         // == Create Fixed
         if (typeId == MSC_TYPE_CREATE_PROPERTY_FIXED) {
-            uint8_t ecosystem = 1;
-            std::string strEco = "Main Ecosystem";
-            if (testEco) {
-                ecosystem = 2;
-                strEco = "Test Ecosystem";
-            }
-            uint16_t propertyType = 1;
-            std::string strPropType = "Indivisible";
-            if (divisible) {
-                propertyType = 2;
-                strPropType = "Divisible";
-            }
-
-            string strMsgText = "You are about to send the following transaction, please check the details thoroughly:\n\n";
             strMsgText += "Type: Create Property (Fixed)\n\n";
             strMsgText += "From: " + fromAddress.ToString() + "\n";
-            strMsgText += "Ecosystem:   " + strEco + "\n";
-            strMsgText += "Property Type:   " + strPropType + "\n";
-            strMsgText += "Property Name:   " + strPropName + "\n";
-            strMsgText += "Property URL::   " + strPropURL + "\n";
-            strMsgText += "Amout of Tokens:   " + strAmount + "\n";
+            strMsgText += "Ecosystem: " + strEco + "\n";
+            strMsgText += "Property Type: " + strPropType + "\n";
+            strMsgText += "Property Name: " + strPropName + "\n";
+            strMsgText += "Property URL: " + strPropURL + "\n";
+            strMsgText += "Amout of Tokens: " + strAmount + "\n";
+            if (!txConfirmation(strMsgText)) return;
+            payload = CreatePayload_IssuanceFixed(ecosystem, propertyType, 0, strPropName, strPropURL, "", sendAmount);
+        }
 
-            strMsgText += "\nAre you sure you wish to send this transaction?";
-            QString msgText = QString::fromStdString(strMsgText);
-            QMessageBox::StandardButton responseClick;
-            responseClick = QMessageBox::question(this, "Confirm transaction", msgText, QMessageBox::Yes|QMessageBox::No);
-            if (responseClick == QMessageBox::No) {
-                QMessageBox::critical( this, "Transaction cancelled",
-                "The transaction has been cancelled.\n\nPlease double-check the transction details thoroughly before retrying your transaction." );
+        // == Create Variable
+        if (typeId == MSC_TYPE_CREATE_PROPERTY_VARIABLE) {
+            std::string strDeadline = ui->deadlineLE->text().toStdString();
+            std::string strEarlyBonus = ui->earlybirdLE->text().toStdString();
+            std::string strIssuerPercentage = ui->issuerLE->text().toStdString();
+            int64_t deadline = StrToInt64(strDeadline, divisible);
+            int64_t earlyBonus = StrToInt64(strEarlyBonus, divisible);
+            int64_t issuerPercentage = StrToInt64(strIssuerPercentage, divisible);
+            if (earlyBonus > 255 || issuerPercentage > 255) {
+                QMessageBox::critical(this, "Unable to send transaction",
+                "The deadline, early bonus and issuer percentage fields must be numeric.\n\nPlease double-check the transction details thoroughly before retrying your send transaction." );
                 return;
             }
-            // create a payload for the transaction
-            payload = CreatePayload_IssuanceFixed(ecosystem, propertyType, 0, strPropName, strPropURL, "", sendAmount);
+            std::string propDetails = getPropertyName(propertyId) + getTokenLabel(propertyId);
+            strMsgText += "Type: Create Property (Variable)\n\n";
+            strMsgText += "From: " + fromAddress.ToString() + "\n";
+            strMsgText += "Ecosystem: " + strEco + "\n";
+            strMsgText += "Property Type: " + strPropType + "\n";
+            strMsgText += "Property Name: " + strPropName + "\n";
+            strMsgText += "Property URL: " + strPropURL + "\n";
+            strMsgText += "Desired Property: " + propDetails + "\n";
+            strMsgText += "Deadline: " + strprintf("%d",deadline) + "\n";
+            strMsgText += "Early Bonus %: " + strprintf("%d",earlyBonus) + "\n";
+            strMsgText += "Issuer %: " + strprintf("%d",issuerPercentage) + "\n";
+            strMsgText += "Amout Per Unit: " + strAmount + "\n";
+            if (!txConfirmation(strMsgText)) return;
+            payload = CreatePayload_IssuanceVariable(ecosystem, propertyType, 0, strPropName, strPropURL, "", propertyId, sendAmount, deadline, earlyBonus, issuerPercentage);
+        }
+
+        // == Close Crowdsale
+        if (typeId == MSC_TYPE_CLOSE_CROWDSALE) {
+            std::string propDetails = getPropertyName(propertyId) + getTokenLabel(propertyId);
+            strMsgText += "Type: Close Crowdsale\n\n";
+            strMsgText += "From: " + fromAddress.ToString() + "\n";
+            strMsgText += "Property: " + propDetails + "\n";
+            if (!txConfirmation(strMsgText)) return;
+            payload = CreatePayload_CloseCrowdsale(propertyId);
+        }
+
+        // == Create Manual
+        if (typeId == MSC_TYPE_CREATE_PROPERTY_MANUAL) {
+            strMsgText += "Type: Create Property (Managed)\n\n";
+            strMsgText += "From: " + fromAddress.ToString() + "\n";
+            strMsgText += "Ecosystem: " + strEco + "\n";
+            strMsgText += "Property Type: " + strPropType + "\n";
+            strMsgText += "Property Name: " + strPropName + "\n";
+            strMsgText += "Property URL: " + strPropURL + "\n";
+            if (!txConfirmation(strMsgText)) return;
+            payload = CreatePayload_IssuanceManaged(ecosystem, propertyType, 0, strPropName, strPropURL, "");
+        }
+
+        // == Grant
+        if (typeId == MSC_TYPE_GRANT_PROPERTY_TOKENS) {
+            std::string propDetails = getPropertyName(propertyId) + getTokenLabel(propertyId);
+            strMsgText += "Type: Grant Tokens\n\n";
+            strMsgText += "From: " + fromAddress.ToString() + "\n";
+            strMsgText += "To: " + refAddress.ToString() + "\n";
+            strMsgText += "Property: " + propDetails + "\n";
+            strMsgText += "Amount that will be granted: " + FormatByType(sendAmount, divisible) + "\n";
+            if (!txConfirmation(strMsgText)) return;
+            payload = CreatePayload_Grant(propertyId, sendAmount);
+        }
+
+        // == Revoke
+        if (typeId == MSC_TYPE_REVOKE_PROPERTY_TOKENS) {
+            if (!sufficientBalance(fromAddress.ToString(), propertyId, sendAmount)) return;
+            std::string propDetails = getPropertyName(propertyId) + getTokenLabel(propertyId);
+            strMsgText += "Type: Revoke Tokens\n\n";
+            strMsgText += "From: " + fromAddress.ToString() + "\n";
+            strMsgText += "Property: " + propDetails + "\n";
+            strMsgText += "Amount that will be revoked: " + FormatByType(sendAmount, divisible) + "\n";
+            if (!txConfirmation(strMsgText)) return;
+            payload = CreatePayload_Revoke(propertyId, sendAmount);
+        }
+
+        // == Change Issuer
+        if (typeId == MSC_TYPE_CHANGE_ISSUER_ADDRESS) {
+            std::string propDetails = getPropertyName(propertyId) + getTokenLabel(propertyId);
+            strMsgText += "Type: Change Issuer\n\n";
+            strMsgText += "From: " + fromAddress.ToString() + "\n";
+            strMsgText += "To: " + refAddress.ToString() + "\n";
+            strMsgText += "Property: " + propDetails + "\n";
+            if (!txConfirmation(strMsgText)) return;
+            payload = CreatePayload_ChangeIssuer(propertyId);
         }
 
     // ##### END PER TX CHECKS & PAYLOAD CREATION #####
@@ -436,13 +542,8 @@ void SendMPDialog::sendMPTransaction()
             PopulateTXSentDialog(txid.GetHex());
         }
     }
+
     clearFields();
-
-
-
-
-
-
 }
 
 void SendMPDialog::sendFromComboBoxChanged(int idx)
@@ -456,6 +557,20 @@ void SendMPDialog::propertyComboBoxChanged(int idx)
     updateFrom();
 }
 
+void SendMPDialog::hideAll()
+{
+    ui->amountLineEdit->hide();
+    ui->balanceLabel->hide();
+    ui->chkDivisible->hide();
+    ui->propertyComboBox->hide();
+    ui->wgtAmount->hide();
+    ui->wgtCrowd->hide();
+    ui->wgtFrom->hide();
+    ui->wgtProp->hide();
+    ui->wgtPropOptions->hide();
+    ui->wgtTo->hide();
+}
+
 void SendMPDialog::typeComboBoxChanged(int idx)
 {
     QString typeIdStr = ui->typeCombo->itemData(ui->typeCombo->currentIndex()).toString();
@@ -465,14 +580,15 @@ void SendMPDialog::typeComboBoxChanged(int idx)
     QString typeStr = ui->typeCombo->itemText(ui->typeCombo->currentIndex());
     ui->typeLabel->setText(typeStr);
 
+    hideAll();
+    updateProperty();
+    updateFrom();
+
     switch (typeId)
     {
         case MSC_TYPE_SIMPLE_SEND:
             ui->amountLineEdit->show();
             ui->amountLabel->setText("Amount");
-            ui->wgtCrowd->hide();
-            ui->wgtProp->hide();
-            ui->wgtPropOptions->hide();
             ui->wgtFrom->show();
             ui->wgtTo->show();
             ui->wgtAmount->show();
@@ -480,26 +596,17 @@ void SendMPDialog::typeComboBoxChanged(int idx)
             ui->propertyComboBox->show();
             break;
         case MSC_TYPE_SEND_ALL:
-            ui->wgtCrowd->hide();
-            ui->wgtProp->hide();
             ui->wgtPropOptions->show();
-            ui->wgtAmount->hide();
-            ui->balanceLabel->hide();
             ui->wgtFrom->show();
             ui->wgtTo->show();
-            ui->chkDivisible->hide();
             break;
         case MSC_TYPE_CREATE_PROPERTY_FIXED:
             ui->amountLineEdit->show();
             ui->amountLabel->setText("Amount");
-            ui->wgtCrowd->hide();
             ui->wgtProp->show();
             ui->wgtPropOptions->show();
             ui->wgtAmount->show();
-            ui->balanceLabel->hide();
             ui->wgtFrom->show();
-            ui->wgtTo->hide();
-            ui->propertyComboBox->hide();
             ui->chkDivisible->show();
             break;
         case MSC_TYPE_CREATE_PROPERTY_VARIABLE:
@@ -508,41 +615,27 @@ void SendMPDialog::typeComboBoxChanged(int idx)
             ui->wgtPropOptions->show();
             ui->wgtAmount->show();
             ui->amountLabel->setText("Amount");
-            ui->balanceLabel->hide();
+            ui->amountLineEdit->show();
             ui->wgtFrom->show();
-            ui->wgtTo->hide();
             ui->propertyComboBox->show();
             ui->chkDivisible->show();
             break;
         case MSC_TYPE_CLOSE_CROWDSALE:
-            ui->wgtCrowd->hide();
-            ui->wgtProp->hide();
-            ui->wgtPropOptions->hide();
             ui->wgtAmount->show();
-            ui->amountLineEdit->hide();
             ui->amountLabel->setText("Property");
             ui->balanceLabel->show();
             ui->wgtFrom->show();
-            ui->wgtTo->hide();
             ui->propertyComboBox->show();
             break;
         case MSC_TYPE_CREATE_PROPERTY_MANUAL:
-            ui->wgtCrowd->hide();
             ui->wgtProp->show();
             ui->wgtPropOptions->show();
-            ui->wgtAmount->hide();
-            ui->balanceLabel->hide();
             ui->wgtFrom->show();
-            ui->wgtTo->hide();
-            ui->propertyComboBox->hide();
             ui->chkDivisible->show();
             break;
         case MSC_TYPE_GRANT_PROPERTY_TOKENS:
             ui->amountLineEdit->show();
             ui->amountLabel->setText("Amount");
-            ui->wgtCrowd->hide();
-            ui->wgtProp->hide();
-            ui->wgtPropOptions->hide();
             ui->wgtAmount->show();
             ui->balanceLabel->show();
             ui->wgtFrom->show();
@@ -552,9 +645,6 @@ void SendMPDialog::typeComboBoxChanged(int idx)
         case MSC_TYPE_REVOKE_PROPERTY_TOKENS:
             ui->amountLineEdit->show();
             ui->amountLabel->setText("Amount");
-            ui->wgtCrowd->hide();
-            ui->wgtProp->hide();
-            ui->wgtPropOptions->hide();
             ui->wgtAmount->show();
             ui->balanceLabel->show();
             ui->wgtFrom->show();
@@ -562,11 +652,7 @@ void SendMPDialog::typeComboBoxChanged(int idx)
             ui->propertyComboBox->show();
             break;
         case MSC_TYPE_CHANGE_ISSUER_ADDRESS:
-            ui->wgtCrowd->hide();
-            ui->wgtProp->hide();
-            ui->wgtPropOptions->hide();
             ui->wgtAmount->show();
-            ui->amountLineEdit->hide();
             ui->amountLabel->setText("Property");
             ui->balanceLabel->show();
             ui->wgtFrom->show();
@@ -574,17 +660,8 @@ void SendMPDialog::typeComboBoxChanged(int idx)
             ui->propertyComboBox->show();
             break;
         default:
-            ui->wgtCrowd->hide();
-            ui->wgtProp->hide();
-            ui->wgtPropOptions->hide();
-            ui->wgtAmount->hide();
-            ui->balanceLabel->hide();
-            ui->wgtFrom->hide();
-            ui->wgtTo->hide();
-            ui->propertyComboBox->hide();
             break;
     }
-
 }
 
 void SendMPDialog::clearButtonClicked()
@@ -615,4 +692,34 @@ void SendMPDialog::balancesUpdated()
     updatePropSelector();
     updateProperty();
     updateFrom();
+}
+
+bool SendMPDialog::txConfirmation(std::string strMsgText)
+{
+    strMsgText += "\n\nAre you sure you wish to send this transaction?";
+    QString msgText = QString::fromStdString(strMsgText);
+
+    QMessageBox::StandardButton responseClick;
+    responseClick = QMessageBox::question(this, "Confirm transaction", msgText, QMessageBox::Yes|QMessageBox::No);
+
+    if (responseClick == QMessageBox::Yes) {
+        return true;
+    }
+
+    QMessageBox::critical(this, "Transaction cancelled",
+    "The transaction has been cancelled.\n\nPlease double-check the transction details thoroughly before retrying your transaction." );
+    return false;
+}
+
+bool SendMPDialog::sufficientBalance(std::string address, uint32_t propertyId, int64_t amount)
+{
+    int64_t balanceAvailable = getUserAvailableMPbalance(address, propertyId);
+
+    if (amount <= balanceAvailable) {
+        return true;
+    }
+
+    QMessageBox::critical(this, "Unable to send transaction",
+    "The selected sending address does not have a sufficient balance to cover the amount entered.\n\nPlease double-check the transction details thoroughly before retrying your send transaction." );
+    return false;
 }
