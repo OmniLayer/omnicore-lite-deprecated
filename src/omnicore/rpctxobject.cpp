@@ -231,8 +231,6 @@ void populateRPCTypeCreatePropertyFixed(CMPTransaction& omniObj, UniValue& txobj
 
     txobj.push_back(Pair("ecosystem", strEcosystem(omniObj.getEcosystem())));
     txobj.push_back(Pair("propertytype", strPropertyType(omniObj.getPropertyType())));
-    txobj.push_back(Pair("category", omniObj.getSPCategory()));
-    txobj.push_back(Pair("subcategory", omniObj.getSPSubCategory()));
     txobj.push_back(Pair("propertyname", omniObj.getSPName()));
     txobj.push_back(Pair("data", omniObj.getSPData()));
     txobj.push_back(Pair("url", omniObj.getSPUrl()));
@@ -247,10 +245,8 @@ void populateRPCTypeCreatePropertyVariable(CMPTransaction& omniObj, UniValue& tx
     if (propertyId > 0) txobj.push_back(Pair("propertyid", (uint64_t) propertyId));
     if (propertyId > 0) txobj.push_back(Pair("divisible", isPropertyDivisible(propertyId)));
 
-    txobj.push_back(Pair("propertytype", strPropertyType(omniObj.getPropertyType())));
     txobj.push_back(Pair("ecosystem", strEcosystem(omniObj.getEcosystem())));
-    txobj.push_back(Pair("category", omniObj.getSPCategory()));
-    txobj.push_back(Pair("subcategory", omniObj.getSPSubCategory()));
+    txobj.push_back(Pair("propertytype", strPropertyType(omniObj.getPropertyType())));
     txobj.push_back(Pair("propertyname", omniObj.getSPName()));
     txobj.push_back(Pair("data", omniObj.getSPData()));
     txobj.push_back(Pair("url", omniObj.getSPUrl()));
@@ -271,10 +267,8 @@ void populateRPCTypeCreatePropertyManual(CMPTransaction& omniObj, UniValue& txob
     if (propertyId > 0) txobj.push_back(Pair("propertyid", (uint64_t) propertyId));
     if (propertyId > 0) txobj.push_back(Pair("divisible", isPropertyDivisible(propertyId)));
 
-    txobj.push_back(Pair("propertytype", strPropertyType(omniObj.getPropertyType())));
     txobj.push_back(Pair("ecosystem", strEcosystem(omniObj.getEcosystem())));
-    txobj.push_back(Pair("category", omniObj.getSPCategory()));
-    txobj.push_back(Pair("subcategory", omniObj.getSPSubCategory()));
+    txobj.push_back(Pair("propertytype", strPropertyType(omniObj.getPropertyType())));
     txobj.push_back(Pair("propertyname", omniObj.getSPName()));
     txobj.push_back(Pair("data", omniObj.getSPData()));
     txobj.push_back(Pair("url", omniObj.getSPUrl()));
