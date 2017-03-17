@@ -47,15 +47,14 @@ BalancesDialog::BalancesDialog(QWidget *parent) :
     ui->balancesTable->setHorizontalHeaderItem(0, new QTableWidgetItem("Property ID"));
     ui->balancesTable->setHorizontalHeaderItem(1, new QTableWidgetItem("Property Name"));
     ui->balancesTable->setHorizontalHeaderItem(2, new QTableWidgetItem("Available"));
-    borrowedColumnResizingFixer = new GUIUtil::TableViewLastColumnResizingFixer(ui->balancesTable,100,100);
     // note neither resizetocontents or stretch allow user to adjust - go interactive then manually set widths
     #if QT_VERSION < 0x050000
        ui->balancesTable->horizontalHeader()->setResizeMode(0, QHeaderView::Interactive);
-       ui->balancesTable->horizontalHeader()->setResizeMode(1, QHeaderView::Interactive);
+       ui->balancesTable->horizontalHeader()->setResizeMode(1, QHeaderView::Stretch);
        ui->balancesTable->horizontalHeader()->setResizeMode(2, QHeaderView::Interactive);
     #else
        ui->balancesTable->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Interactive);
-       ui->balancesTable->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Interactive);
+       ui->balancesTable->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);
        ui->balancesTable->horizontalHeader()->setSectionResizeMode(2, QHeaderView::Interactive);
     #endif
     ui->balancesTable->setAlternatingRowColors(true);
@@ -67,7 +66,6 @@ BalancesDialog::BalancesDialog(QWidget *parent) :
     // initial resizing
     ui->balancesTable->resizeColumnToContents(0);
     ui->balancesTable->resizeColumnToContents(2);
-    borrowedColumnResizingFixer->stretchColumnWidth(1);
     ui->balancesTable->verticalHeader()->setVisible(false);
     ui->balancesTable->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     ui->balancesTable->setSelectionBehavior(QAbstractItemView::SelectRows);
@@ -284,6 +282,5 @@ void BalancesDialog::balancesUpdated()
 void BalancesDialog::resizeEvent(QResizeEvent* event)
 {
     QWidget::resizeEvent(event);
-    borrowedColumnResizingFixer->stretchColumnWidth(1);
 }
 
