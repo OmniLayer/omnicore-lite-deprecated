@@ -50,7 +50,7 @@ static void PendingActivationCompleted(const FeatureActivation& activation)
 {
     DeletePendingActivation(activation.featureId);
     vecCompletedActivations.push_back(activation);
-    //uiInterface.OmniStateChanged();
+    uiInterface.OmniStateChanged();
 }
 
 /**
@@ -70,7 +70,7 @@ void AddPendingActivation(uint16_t featureId, int activationBlock, uint32_t minC
 
     vecPendingActivations.push_back(featureActivation);
 
-    //uiInterface.OmniStateChanged();
+    uiInterface.OmniStateChanged();
 }
 
 /**
@@ -122,7 +122,7 @@ void ClearActivations()
 {
     vecPendingActivations.clear();
     vecCompletedActivations.clear();
-    //uiInterface.OmniStateChanged();
+    uiInterface.OmniStateChanged();
 }
 
 /**

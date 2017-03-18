@@ -36,7 +36,7 @@ void DeleteAlerts(const std::string& sender)
             PrintToLog("Removing deleted alert (from:%s type:%d expiry:%d message:%s)\n", alert.alert_sender,
                 alert.alert_type, alert.alert_expiry, alert.alert_message);
             it = currentOmniAlerts.erase(it);
-            //uiInterface.OmniStateChanged();
+            uiInterface.OmniStateChanged();
         } else {
             it++;
         }
@@ -51,7 +51,7 @@ void DeleteAlerts(const std::string& sender)
 void ClearAlerts()
 {
     currentOmniAlerts.clear();
-    //uiInterface.OmniStateChanged();
+    uiInterface.OmniStateChanged();
 }
 
 /**
@@ -148,7 +148,7 @@ bool CheckExpiredAlerts(unsigned int curBlock, uint64_t curTime)
                     PrintToLog("Expiring alert (from %s: type:%d expiry:%d message:%s)\n", alert.alert_sender,
                         alert.alert_type, alert.alert_expiry, alert.alert_message);
                     it = currentOmniAlerts.erase(it);
-                    //uiInterface.OmniStateChanged();
+                    uiInterface.OmniStateChanged();
                 } else {
                     it++;
                 }
@@ -158,7 +158,7 @@ bool CheckExpiredAlerts(unsigned int curBlock, uint64_t curTime)
                     PrintToLog("Expiring alert (from %s: type:%d expiry:%d message:%s)\n", alert.alert_sender,
                         alert.alert_type, alert.alert_expiry, alert.alert_message);
                     it = currentOmniAlerts.erase(it);
-                    //uiInterface.OmniStateChanged();
+                    uiInterface.OmniStateChanged();
                 } else {
                     it++;
                 }
@@ -168,7 +168,7 @@ bool CheckExpiredAlerts(unsigned int curBlock, uint64_t curTime)
                     PrintToLog("Expiring alert (form: %s type:%d expiry:%d message:%s)\n", alert.alert_sender,
                         alert.alert_type, alert.alert_expiry, alert.alert_message);
                     it = currentOmniAlerts.erase(it);
-                    //uiInterface.OmniStateChanged();
+                    uiInterface.OmniStateChanged();
                 } else {
                     it++;
                 }
@@ -177,7 +177,7 @@ bool CheckExpiredAlerts(unsigned int curBlock, uint64_t curTime)
                     PrintToLog("Removing invalid alert (from:%s type:%d expiry:%d message:%s)\n", alert.alert_sender,
                         alert.alert_type, alert.alert_expiry, alert.alert_message);
                     it = currentOmniAlerts.erase(it);
-                    //uiInterface.OmniStateChanged();
+                    uiInterface.OmniStateChanged();
             break;
         }
     }
