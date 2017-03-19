@@ -547,6 +547,8 @@ void SendMPDialog::sendMPTransaction()
         } else {
             if (typeId == MSC_TYPE_SIMPLE_SEND) {
                 PendingAdd(txid, fromAddress.ToString(), MSC_TYPE_SIMPLE_SEND, propertyId, sendAmount);
+            } else {
+                PendingAdd(txid, fromAddress.ToString(), typeId, 0, sendAmount, false); // TODO - better pending support needed
             }
             PopulateTXSentDialog(txid.GetHex());
         }
