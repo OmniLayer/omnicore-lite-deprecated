@@ -14,6 +14,7 @@
 
 class ClientModel;
 class WalletModel;
+class PlatformStyle;
 
 QT_BEGIN_NAMESPACE
 class QMenu;
@@ -50,7 +51,7 @@ class TXHistoryDialog : public QDialog
     Q_OBJECT
 
 public:
-    explicit TXHistoryDialog(QWidget *parent = 0);
+    explicit TXHistoryDialog(const PlatformStyle *platformStyle, QWidget *parent = 0);
     ~TXHistoryDialog();
 
     void setClientModel(ClientModel *model);
@@ -66,6 +67,7 @@ private:
     GUIUtil::TableViewLastColumnResizingFixer *borrowedColumnResizingFixer;
     QMenu *contextMenu;
     HistoryMap txHistoryMap;
+    const PlatformStyle *platformStyle;
 
 private Q_SLOTS:
     void contextualMenu(const QPoint &point);

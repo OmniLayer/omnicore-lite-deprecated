@@ -60,7 +60,7 @@ WalletView::WalletView(const PlatformStyle *platformStyle, QWidget *parent):
     hbox_buttons->addWidget(exportButton);
     vbox->addLayout(hbox_buttons);
     litecoinTXTab->setLayout(vbox);
-    mpTXTab = new TXHistoryDialog;
+    mpTXTab = new TXHistoryDialog(platformStyle, this);
     transactionsPage = new QWidget(this);
     QVBoxLayout *txvbox = new QVBoxLayout();
     txTabHolder = new QTabWidget();
