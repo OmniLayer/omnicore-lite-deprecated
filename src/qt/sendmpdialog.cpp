@@ -435,9 +435,10 @@ void SendMPDialog::sendMPTransaction()
             std::string strDeadline = ui->deadlineLE->text().toStdString();
             std::string strEarlyBonus = ui->earlybirdLE->text().toStdString();
             std::string strIssuerPercentage = ui->issuerLE->text().toStdString();
-            int64_t deadline = StrToInt64(strDeadline, divisible);
-            int64_t earlyBonus = StrToInt64(strEarlyBonus, divisible);
-            int64_t issuerPercentage = StrToInt64(strIssuerPercentage, divisible);
+            int64_t deadline = StrToInt64(strDeadline, false);
+            int64_t earlyBonus = StrToInt64(strEarlyBonus, false);
+            int64_t issuerPercentage = StrToInt64(strIssuerPercentage, false);
+
             if (earlyBonus > 255 || issuerPercentage > 255) {
                 QMessageBox::critical(this, "Unable to send transaction",
                 "The deadline, early bonus and issuer percentage fields must be numeric.\n\nPlease double-check the transction details thoroughly before retrying your send transaction." );
