@@ -97,7 +97,7 @@ TODO : New chain checkpoints
  */
 CMainConsensusParams::CMainConsensusParams()
 {
-    GENESIS_BLOCK = 1130590;
+    GENESIS_BLOCK = 1171000;
     // Notice range for feature activations:
     MIN_ACTIVATION_BLOCKS = 2048;  // ~2 weeks
     MAX_ACTIVATION_BLOCKS = 12288; // ~12 weeks
