@@ -236,7 +236,7 @@ int TXHistoryDialog::PopulateHistoryMap()
             htxo.amount = "-" + FormatShortMP(pending.prop, pending.amount) + getTokenLabel(pending.prop);
             bool fundsMoved = true;
             htxo.txType = shrinkTxType(pending.type, &fundsMoved);
-            if (pending.type == MSC_TYPE_SEND_ALL) {
+            if (pending.type == MSC_TYPE_SEND_ALL || pending.type == MSC_TYPE_CREATE_PROPERTY_FIXED || pending.type == MSC_TYPE_CREATE_PROPERTY_VARIABLE || pending.type == MSC_TYPE_CREATE_PROPERTY_MANUAL) {
                 htxo.amount = "N/A";
             }
             txHistoryMap.insert(std::make_pair(txHash, htxo));
