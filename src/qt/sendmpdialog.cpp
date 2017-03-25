@@ -82,12 +82,12 @@ SendMPDialog::SendMPDialog(const PlatformStyle *platformStyle, QWidget *parent) 
     ui->typeCombo->addItem("Simple Send","0");
     ui->typeCombo->addItem("Send All","4");
     ui->typeCombo->addItem("Issuance (Fixed)","50");
-    ui->typeCombo->addItem("Issuance (Crowdsale)","51");
-    ui->typeCombo->addItem("Close Crowdsale","53");
     ui->typeCombo->addItem("Issuance (Managed)","54");
     ui->typeCombo->addItem("Grant Tokens","55");
     ui->typeCombo->addItem("Revoke Tokens","56");
     ui->typeCombo->addItem("Change Issuer","70");
+    ui->typeCombo->addItem("Issuance (Crowdsale)","51");
+    ui->typeCombo->addItem("Close Crowdsale","53");
     ui->typeCombo->hide();
 
     ui->typeLabel->setText("Simple Send");
