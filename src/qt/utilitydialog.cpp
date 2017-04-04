@@ -21,6 +21,8 @@
 #include "init.h"
 #include "util.h"
 
+#include "omnicore/version.h"
+
 #include <stdio.h>
 
 #include <QCloseEvent>
@@ -37,7 +39,7 @@ HelpMessageDialog::HelpMessageDialog(QWidget *parent, bool about) :
 {
     ui->setupUi(this);
 
-    QString version = tr(PACKAGE_NAME) + " " + tr("version") + " " + QString::fromStdString(FormatFullVersion());
+    QString version = tr("Omni Core Lite") + " " + tr("version") + " " + QString::fromStdString(OmniCoreVersion());
     /* On x86 add a bit specifier to the version so that users can distinguish between
      * 32 and 64 bit builds. On other architectures, 32/64 bit may be more ambigious.
      */
@@ -49,7 +51,7 @@ HelpMessageDialog::HelpMessageDialog(QWidget *parent, bool about) :
 
     if (about)
     {
-        setWindowTitle(tr("About %1").arg(tr(PACKAGE_NAME)));
+        setWindowTitle(tr("About %1").arg(tr("Omni Core Lite")));
 
         /// HTML-format the license message from the core
         QString licenseInfo = QString::fromStdString(LicenseInfo());

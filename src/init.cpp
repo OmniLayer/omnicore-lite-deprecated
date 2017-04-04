@@ -513,7 +513,10 @@ std::string LicenseInfo()
     const std::string URL_WEBSITE = "<http://omnilayer.org>";
 
     // todo: remove urls from translations on next change
-    return CopyrightHolders(strprintf(_("Copyright (C) %i-%i"), 2011, COPYRIGHT_YEAR) + " ") + "\n" +
+    return  strprintf("Copyright (C) 2009-%i", COPYRIGHT_YEAR) + " The Bitcoin Core developers\n" +
+           strprintf("Copyright (C) 2011-%i", COPYRIGHT_YEAR) + " The Litcoin developers\n" +
+           strprintf("Copyright (C) 2013-%i", COPYRIGHT_YEAR) + " The Omni Core developers\n" +
+
            "\n" +
            strprintf(_("Please contribute if you find %s useful. "
                        "Visit %s for further information about the software."),

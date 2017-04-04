@@ -896,7 +896,7 @@ void SendMPDialog::updateFeeSectionControls()
     ui->radioCustomPerKilobyte  ->setEnabled(ui->radioCustomFee->isChecked() && !ui->checkBoxMinimumFee->isChecked());
     ui->radioCustomAtLeast      ->setEnabled(ui->radioCustomFee->isChecked() && !ui->checkBoxMinimumFee->isChecked());
     ui->customFee               ->setEnabled(ui->radioCustomFee->isChecked() && !ui->checkBoxMinimumFee->isChecked());
-    Q_EMIT feesUpdated();
+    //Q_EMIT feesUpdated();
 }
 
 void SendMPDialog::updateGlobalFeeVariables()
@@ -959,7 +959,7 @@ void SendMPDialog::updateSmartFeeLabel()
 
     updateFeeMinimizedLabel();
 
-    Q_EMIT feesUpdated();
+    //Q_EMIT feesUpdated();
 }
 
 /**
