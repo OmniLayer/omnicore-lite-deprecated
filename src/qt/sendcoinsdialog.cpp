@@ -584,6 +584,7 @@ void SendCoinsDialog::updateFeeSectionControls()
     ui->radioCustomPerKilobyte  ->setEnabled(ui->radioCustomFee->isChecked() && !ui->checkBoxMinimumFee->isChecked());
     ui->radioCustomAtLeast      ->setEnabled(ui->radioCustomFee->isChecked() && !ui->checkBoxMinimumFee->isChecked() && CoinControlDialog::coinControl->HasSelected());
     ui->customFee               ->setEnabled(ui->radioCustomFee->isChecked() && !ui->checkBoxMinimumFee->isChecked());
+    Q_EMIT feesUpdated();
 }
 
 void SendCoinsDialog::updateGlobalFeeVariables()
@@ -652,6 +653,8 @@ void SendCoinsDialog::updateSmartFeeLabel()
     }
 
     updateFeeMinimizedLabel();
+
+    Q_EMIT feesUpdated();
 }
 
 // Coin Control: copy label "Quantity" to clipboard
@@ -876,3 +879,14 @@ void SendConfirmationDialog::updateYesButton()
         yesButton->setText(tr("Yes"));
     }
 }
+
+/**
+  * Helper to update the fee display when the settings have been changed in another tab
+  */
+void SendCoinsDialog::refreshFeeDetails()
+{
+    updateSmartFeeLabel();
+    updateFeeSectionControls();
+}
+
+

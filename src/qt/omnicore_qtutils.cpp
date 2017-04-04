@@ -2,6 +2,8 @@
 
 #include "guiutil.h"
 
+#include "omnicore/omnicore.h"
+
 #include <string>
 
 #include <QDialog>
@@ -27,7 +29,7 @@ void PopulateTXSentDialog(const std::string& txidStr)
     sentDialog.setText(QString::fromStdString(strSentText));
     sentDialog.setStandardButtons(QMessageBox::Yes|QMessageBox::Ok);
     sentDialog.setDefaultButton(QMessageBox::Ok);
-    sentDialog.setButtonText( QMessageBox::Yes, "Copy TXID to clipboard" );
+    sentDialog.setButtonText( QMessageBox::Yes, "OK + Copy TXID" );
     if(sentDialog.exec() == QMessageBox::Yes) GUIUtil::setClipboard(QString::fromStdString(txidStr));
 }
 
@@ -107,6 +109,70 @@ std::string ReplaceStr(const std::string& findText, const std::string& replaceTe
         start_pos += replaceText.length();
     }
     return outputStr;
+}
+
+/**
+ * Long descriptions of transaction types.
+ */
+std::string GetLongDescription(uint16_t txType)
+{
+   switch (txType) {
+        case MSC_TYPE_SIMPLE_SEND:
+            return "The Simple Send transaction type transfers a specific number of tokens of the "
+                   "selected property from the sender to the recipient.\n\n"
+                   "Please choose the property you wish to send, then select the address you would "
+                   "like to send from.  Enter the recipient address in the 'Send To' field and the "
+                   "number of tokens you would like to send in the 'Amount' field.";
+        case MSC_TYPE_SEND_ALL:
+            return "The Send All transaction type transfers ALL available tokens in the selected "
+                   "ecosystem from the sender to the recipient.\n\n"
+                   "Please choose the address you would like to send from and enter the recipient "
+                   "address in the 'Send To' field.\n\n"
+                   "Use with caution!";
+        case MSC_TYPE_CREATE_PROPERTY_FIXED:
+            return "The Fixed Issuance transaction type creates a new property with a fixed number "
+                   "of tokens.  The new tokens are credited to the sender.\n\n"
+                   "Please choose a name for your property and enter the amount of tokens you would "
+                   "like to create.  You will also need to decide whether you would like your new "
+                   "tokens to be divisible.  You may also include a short URL to provide interested parties "
+                   "with further details on your new property (optional).";
+        case MSC_TYPE_CREATE_PROPERTY_VARIABLE:
+            return "The Crowdsale Issuance transaction type creates a new property with the number of "
+                   "tokens to be determined by a crowdsale.\n\n"
+                   "Please choose a name for your property.  You may also include a short URL to provide "
+                   "interested parties with further details on your new property (optional).  You will "
+                   "also need to decide whether you would like your new property to be divisible.\n\n"
+                   "Enter the crowdsale deadline as a unix time stamp, and provide your chosen early "
+                   "bonus and issuer percentage values.  Enter the amount of tokens to issue per unit paid "
+                   "in the amount field and select the property you would like to receive payment in.";
+        case MSC_TYPE_CLOSE_CROWDSALE:
+            return "The Close Crowdsale transaction type closes an active crowdsale, finalizing the "
+                   "number of tokens for the property and preventing the recognition of further purchases.\n\n"
+                   "Please choose the property you would like to close the crowdsale for.";
+        case MSC_TYPE_CREATE_PROPERTY_MANUAL:
+            return "The Managed Issuance transaction type creates a new property for issuer-managed "
+                   "tokens.  No tokens are created.\n\n"
+                   "Please choose a name for your property.  You will also need to decide whether you "
+                   "would like your new property to be divisible.  You may also include a short URL to provide "
+                   "interested parties with further details on your new property (optional).";
+        case MSC_TYPE_GRANT_PROPERTY_TOKENS:
+            return "The Grant transaction type creates tokens for an issuer-managed property.\n\n"
+                   "Please select the property you would like to grant tokens for, then select the sending "
+                   "address.  New tokens are credited to the recipient if supplied, otherwise the new tokens "
+                   "are credited to the sender.";
+        case MSC_TYPE_REVOKE_PROPERTY_TOKENS:
+            return "The Revoke transaction type destroys tokens for an issuer-managed property.\n\n"
+                   "Please select the property you would like to revoke tokens for, then select the sending "
+                   "address.  Tokens are debited from the sender and destroyed.";
+        case MSC_TYPE_CHANGE_ISSUER_ADDRESS:
+            return "The Change Issuer transaction type changes the issuer on record for a property.\n\n"
+                   "Please choose the property you would like to change the issuer for, then enter the "
+                   "recipient address.  Changing the issuer on record transfers control of a property from "
+                   "the sender to the recipient.\n\n"
+                     "Use with caution!";
+
+        default: return "* A description for this transaction cannot be found *";
+    }
 }
 
 } // end namespace

@@ -30,6 +30,12 @@ namespace mastercore
     * with replaceText.
     */
     std::string ReplaceStr(const std::string& findText, const std::string& replaceText, const std::string& inputStr);
+
+    /**
+     * Long descriptions of transaction types.
+     */
+    std::string GetLongDescription(uint16_t txType);
+
 }
 
 #endif // OMNICORE_QTUTILS

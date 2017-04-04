@@ -101,6 +101,10 @@ WalletView::WalletView(const PlatformStyle *platformStyle, QWidget *parent):
     // Clicking on "Export" allows to export the transaction list
     connect(exportButton, SIGNAL(clicked()), transactionView, SLOT(exportClicked()));
 
+    // Changing fees in one send tab should update the displayed fee settings in the other
+    connect(sendCoinsTab, SIGNAL(feesUpdated()), sendMPTab, SLOT(refreshFeeDetails()));
+    connect(sendMPTab, SIGNAL(feesUpdated()), sendCoinsTab, SLOT(refreshFeeDetails()));
+
     // Pass through messages from sendCoinsTab
     connect(sendCoinsTab, SIGNAL(message(QString,QString,unsigned int)), this, SIGNAL(message(QString,QString,unsigned int)));
 

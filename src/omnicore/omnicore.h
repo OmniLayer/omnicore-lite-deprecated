@@ -108,6 +108,7 @@ std::string FormatDivisibleShortMP(int64_t amount);
 std::string FormatMP(uint32_t propertyId, int64_t amount, bool fSign = false);
 std::string FormatShortMP(uint32_t propertyId, int64_t amount);
 std::string FormatByType(int64_t amount, uint16_t propertyType);
+std::string FormatByDivisibility(int64_t amount, bool divisible);
 
 /** Returns the marker for transactions. */
 const std::vector<unsigned char> GetOmMarker();

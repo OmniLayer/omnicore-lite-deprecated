@@ -214,6 +214,15 @@ std::string FormatByType(int64_t amount, uint16_t propertyType)
     }
 }
 
+std::string FormatByDivisibility(int64_t amount, bool divisible)
+{
+    if (!divisible) {
+        return FormatIndivisibleMP(amount);
+    } else {
+        return FormatDivisibleMP(amount);
+    }
+}
+
 CMPSPInfo *mastercore::_my_sps;
 CrowdMap mastercore::my_crowds;
 // this is the master list of all amounts for all addresses for all properties, map is unsorted
