@@ -90,7 +90,6 @@ SendMPDialog::SendMPDialog(const PlatformStyle *platformStyle, QWidget *parent) 
     ui->typeCombo->addItem("Issuance (Managed)","54");
     ui->typeCombo->addItem("Grant Tokens","55");
     ui->typeCombo->addItem("Revoke Tokens","56");
-    ui->typeCombo->addItem("Change Issuer","70");
     ui->typeCombo->addItem("Issuance (Crowdsale)","51");
     ui->typeCombo->addItem("Close Crowdsale","53");
     typeComboBoxChanged(0);
@@ -307,7 +306,7 @@ void SendMPDialog::updateProperty()
     }
 
     // Repopulate the from address selector to include the issuer address for the selected property if it's spendable
-    if (typeId == MSC_TYPE_CLOSE_CROWDSALE || typeId == MSC_TYPE_CHANGE_ISSUER_ADDRESS || typeId == MSC_TYPE_GRANT_PROPERTY_TOKENS) {
+    if (typeId == MSC_TYPE_CLOSE_CROWDSALE || typeId == MSC_TYPE_GRANT_PROPERTY_TOKENS) {
         LOCK(cs_tally);
         CMPSPInfo::Entry sp;
         if (_my_sps->getSP(propertyId, sp)) {
@@ -338,8 +337,6 @@ void SendMPDialog::updateProperty()
             hintHelper("Hint: You don't have any tokens in the wallet.  To send a transaction you'll need to create or obtain some tokens.");
         } else if (typeId == MSC_TYPE_GRANT_PROPERTY_TOKENS) {
             hintHelper("Hint: You can't select any options here because there are no addresses in the wallet that control a managed property.");
-        } else if (typeId == MSC_TYPE_CHANGE_ISSUER_ADDRESS) {
-            hintHelper("Hint: You can't select any options here because there are no addresses in the wallet that have issued a property.");
         } else if (typeId == MSC_TYPE_CLOSE_CROWDSALE) {
             hintHelper("Hint: You can't select any options here because there are no addresses in the wallet with an active crowdsale.");
         } else {
@@ -392,7 +389,7 @@ void SendMPDialog::sendOmniTransaction()
     // obtain the reference address if appropriate
     string strRefAddress = ui->sendToLineEdit->text().toStdString();
     CBitcoinAddress refAddress;
-    if (typeId == MSC_TYPE_SIMPLE_SEND || typeId == MSC_TYPE_CHANGE_ISSUER_ADDRESS || typeId == MSC_TYPE_GRANT_PROPERTY_TOKENS) {
+    if (typeId == MSC_TYPE_SIMPLE_SEND || typeId == MSC_TYPE_GRANT_PROPERTY_TOKENS) {
         if (typeId == MSC_TYPE_GRANT_PROPERTY_TOKENS && strRefAddress.empty()) {
             /** grants are permitted without a recipient **/
         } else {
@@ -409,7 +406,7 @@ void SendMPDialog::sendOmniTransaction()
     uint32_t propertyId = GetCurrentPropertyId();
     if (propertyId == 0) {
         if (typeId == MSC_TYPE_SIMPLE_SEND || typeId == MSC_TYPE_CREATE_PROPERTY_VARIABLE || typeId == MSC_TYPE_CLOSE_CROWDSALE ||
-            typeId == MSC_TYPE_GRANT_PROPERTY_TOKENS || typeId == MSC_TYPE_REVOKE_PROPERTY_TOKENS || typeId == MSC_TYPE_CHANGE_ISSUER_ADDRESS) {
+            typeId == MSC_TYPE_GRANT_PROPERTY_TOKENS || typeId == MSC_TYPE_REVOKE_PROPERTY_TOKENS) {
                 QMessageBox::critical( this, "Unable to send transaction",
                 "The property selected is not valid.\n\nPlease double-check the transction details thoroughly before retrying your send transaction." );
                 return;
@@ -588,14 +585,6 @@ void SendMPDialog::sendOmniTransaction()
         strMsgText += "Amount that will be revoked: " + FormatByDivisibility(sendAmount, divisible) + "\n";
         payload = CreatePayload_Revoke(propertyId, sendAmount);
     }
-    if (typeId == MSC_TYPE_CHANGE_ISSUER_ADDRESS) {
-        std::string propDetails = getPropertyName(propertyId) + getTokenLabel(propertyId);
-        strMsgText += "Type: Change Issuer\n\n";
-        strMsgText += "From: " + fromAddress.ToString() + "\n";
-        strMsgText += "To: " + refAddress.ToString() + "\n";
-        strMsgText += "Property: " + propDetails + "\n";
-        payload = CreatePayload_ChangeIssuer(propertyId);
-    }
     // ##### END PER TX CHECKS & PAYLOAD CREATION #####
 
     // request confirmation to send the transaction
@@ -617,13 +606,7 @@ void SendMPDialog::sendOmniTransaction()
     std::string rawHex;
     int result = -1;
     bool sendWithRefAddress = false;
-    if (typeId == MSC_TYPE_SIMPLE_SEND || typeId == MSC_TYPE_CHANGE_ISSUER_ADDRESS) {
-        sendWithRefAddress = true;
-    }
-    if (typeId == MSC_TYPE_GRANT_PROPERTY_TOKENS && !strRefAddress.empty()) {
-        sendWithRefAddress = true;
-    }
-    if (sendWithRefAddress) {
+    if (typeId == MSC_TYPE_SIMPLE_SEND || (typeId == MSC_TYPE_GRANT_PROPERTY_TOKENS && !strRefAddress.empty())) {
         result = WalletTxBuilder(fromAddress.ToString(), refAddress.ToString(), 0, payload, txid, rawHex, autoCommit);
     } else {
         result = WalletTxBuilder(fromAddress.ToString(), "", 0, payload, txid, rawHex, autoCommit);
@@ -762,15 +745,6 @@ void SendMPDialog::typeComboBoxChanged(int idx)
             ui->wgtAmount->show();
             ui->balanceLabel->show();
             ui->wgtFrom->show();
-            ui->propertyComboBox->show();
-            break;
-        case MSC_TYPE_CHANGE_ISSUER_ADDRESS:
-            ui->sendFromLabel->setText("Change From:");
-            ui->sendToLabel->setText("Change To:");
-            ui->wgtAmount->show();
-            ui->amountLabel->setText("Property:");
-            ui->wgtFrom->show();
-            ui->wgtTo->show();
             ui->propertyComboBox->show();
             break;
         default:
@@ -960,16 +934,6 @@ bool SendMPDialog::FilterProperty(uint16_t typeId, uint32_t propertyId)
             if (IsMyAddress(sp.issuer) != ISMINE_SPENDABLE) {
                 return true;
             }
-        }
-    }
-
-    if (typeId == MSC_TYPE_CHANGE_ISSUER_ADDRESS) {
-        CMPSPInfo::Entry sp;
-        if (!_my_sps->getSP(propertyId, sp)) {
-            return true;
-        }
-        if (IsMyAddress(sp.issuer) != ISMINE_SPENDABLE) {
-            return true;
         }
     }
 
