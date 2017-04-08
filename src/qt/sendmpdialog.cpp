@@ -439,7 +439,7 @@ void SendMPDialog::sendOmniTransaction()
     } else {
         divisible = isPropertyDivisible(propertyId);
     }
-    uint16_t propertyType = divisible ? 1 : 2;
+    uint16_t propertyType = divisible ? 2 : 1;
     std::string strPropType = divisible ? "Divisible" : "Indivisible";
 
     // obtain the amount
@@ -605,7 +605,6 @@ void SendMPDialog::sendOmniTransaction()
     uint256 txid;
     std::string rawHex;
     int result = -1;
-    bool sendWithRefAddress = false;
     if (typeId == MSC_TYPE_SIMPLE_SEND || (typeId == MSC_TYPE_GRANT_PROPERTY_TOKENS && !strRefAddress.empty())) {
         result = WalletTxBuilder(fromAddress.ToString(), refAddress.ToString(), 0, payload, txid, rawHex, autoCommit);
     } else {
