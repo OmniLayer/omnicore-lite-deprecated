@@ -86,7 +86,6 @@ SendMPDialog::SendMPDialog(const PlatformStyle *platformStyle, QWidget *parent) 
 
     ui->typeDescLabel->setText(QString::fromStdString(GetLongDescription(MSC_TYPE_SIMPLE_SEND)));
     ui->typeCombo->addItem("Simple Send","0");
-    ui->typeCombo->addItem("Send All","4");
     ui->typeCombo->addItem("Issuance (Fixed)","50");
     ui->typeCombo->addItem("Issuance (Managed)","54");
     ui->typeCombo->addItem("Grant Tokens","55");
@@ -285,17 +284,6 @@ void SendMPDialog::updateProperty()
         }
     }
 
-    // Repopulate the from address selector to include any spendable address with tokens
-    if (typeId == MSC_TYPE_SEND_ALL) {
-        LOCK(cs_tally);
-        for (std::unordered_map<string, CMPTally>::iterator my_it = mp_tally_map.begin(); my_it != mp_tally_map.end(); ++my_it) {
-            std::string address = (my_it->first).c_str();
-            if (!HasTokens(address)) continue;
-            if (IsMyAddress(address) != ISMINE_SPENDABLE) continue;
-            ui->sendFromComboBox->addItem(QString::fromStdString(address));
-        }
-    }
-
     // Repopulate the from address selector to include any address with spendable utxos
     if (typeId == MSC_TYPE_CREATE_PROPERTY_FIXED || typeId == MSC_TYPE_CREATE_PROPERTY_VARIABLE || typeId == MSC_TYPE_CREATE_PROPERTY_MANUAL) {
         std::set<std::string> setAddresses;
@@ -346,7 +334,7 @@ void SendMPDialog::updateProperty()
         bShowEmptyHint = true;
         if (typeId == MSC_TYPE_CREATE_PROPERTY_FIXED || typeId == MSC_TYPE_CREATE_PROPERTY_VARIABLE || typeId == MSC_TYPE_CREATE_PROPERTY_MANUAL) {
             hintHelper("Hint: The wallet is empty.  To send a transaction you'll need some Litecoin for fees.");
-        } else if (typeId == MSC_TYPE_SIMPLE_SEND || typeId == MSC_TYPE_SEND_ALL || typeId == MSC_TYPE_REVOKE_PROPERTY_TOKENS) {
+        } else if (typeId == MSC_TYPE_SIMPLE_SEND || typeId == MSC_TYPE_REVOKE_PROPERTY_TOKENS) {
             hintHelper("Hint: You don't have any tokens in the wallet.  To send a transaction you'll need to create or obtain some tokens.");
         } else if (typeId == MSC_TYPE_GRANT_PROPERTY_TOKENS) {
             hintHelper("Hint: You can't select any options here because there are no addresses in the wallet that control a managed property.");
@@ -404,7 +392,7 @@ void SendMPDialog::sendOmniTransaction()
     // obtain the reference address if appropriate
     string strRefAddress = ui->sendToLineEdit->text().toStdString();
     CBitcoinAddress refAddress;
-    if (typeId == MSC_TYPE_SIMPLE_SEND || typeId == MSC_TYPE_SEND_ALL || typeId == MSC_TYPE_CHANGE_ISSUER_ADDRESS || typeId == MSC_TYPE_GRANT_PROPERTY_TOKENS) {
+    if (typeId == MSC_TYPE_SIMPLE_SEND || typeId == MSC_TYPE_CHANGE_ISSUER_ADDRESS || typeId == MSC_TYPE_GRANT_PROPERTY_TOKENS) {
         if (typeId == MSC_TYPE_GRANT_PROPERTY_TOKENS && strRefAddress.empty()) {
             /** grants are permitted without a recipient **/
         } else {
@@ -530,17 +518,6 @@ void SendMPDialog::sendOmniTransaction()
         strMsgText += "Amount that will be sent: " + FormatByDivisibility(sendAmount, divisible) + "\n";
         payload = CreatePayload_SimpleSend(propertyId, sendAmount);
     }
-    if (typeId == MSC_TYPE_SEND_ALL) {
-        QMessageBox::warning( this, "ALL TOKENS WILL BE TRANSFERRED",
-        "If you proceeed, ALL tokens for ALL properties will be transferred from the sender to the recipient.");
-        strMsgText += "Type: Send All\n\n";
-        strMsgText += "From: " + fromAddress.ToString() + "\n";
-        strMsgText += "To: " + refAddress.ToString() + "\n";
-        strMsgText += "Ecosystem: " + strEco + "\n";
-        strMsgText += "Property: *All Properties*\n";
-        strMsgText += "Amount: *All Tokens*\n";
-        payload = CreatePayload_SendAll(ecosystem);
-    }
     if (typeId == MSC_TYPE_CREATE_PROPERTY_FIXED) {
         strMsgText += "Type: Create Property (Fixed)\n\n";
         strMsgText += "From: " + fromAddress.ToString() + "\n";
@@ -640,7 +617,7 @@ void SendMPDialog::sendOmniTransaction()
     std::string rawHex;
     int result = -1;
     bool sendWithRefAddress = false;
-    if (typeId == MSC_TYPE_SIMPLE_SEND || typeId == MSC_TYPE_SEND_ALL || typeId == MSC_TYPE_CHANGE_ISSUER_ADDRESS) {
+    if (typeId == MSC_TYPE_SIMPLE_SEND || typeId == MSC_TYPE_CHANGE_ISSUER_ADDRESS) {
         sendWithRefAddress = true;
     }
     if (typeId == MSC_TYPE_GRANT_PROPERTY_TOKENS && !strRefAddress.empty()) {
@@ -727,11 +704,6 @@ void SendMPDialog::typeComboBoxChanged(int idx)
             ui->wgtAmount->show();
             ui->balanceLabel->show();
             ui->propertyComboBox->show();
-            break;
-        case MSC_TYPE_SEND_ALL:
-            ui->wgtPropOptions->show();
-            ui->wgtFrom->show();
-            ui->wgtTo->show();
             break;
         case MSC_TYPE_CREATE_PROPERTY_FIXED:
             ui->amountLineEdit->show();
@@ -967,7 +939,7 @@ void SendMPDialog::updateSmartFeeLabel()
   */
 bool SendMPDialog::FilterProperty(uint16_t typeId, uint32_t propertyId)
 {
-    if (typeId == MSC_TYPE_CREATE_PROPERTY_FIXED || typeId == MSC_TYPE_CREATE_PROPERTY_MANUAL || typeId == MSC_TYPE_SEND_ALL) {
+    if (typeId == MSC_TYPE_CREATE_PROPERTY_FIXED || typeId == MSC_TYPE_CREATE_PROPERTY_MANUAL) {
         return true;
     }
 
