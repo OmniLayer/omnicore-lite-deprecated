@@ -111,49 +111,40 @@ public:
         QRect amountRect(mainRect.left() + xspace, mainRect.top()+ypad, mainRect.width() - xspace, halfheight);
         QRect addressRect(mainRect.left() + xspace, mainRect.top()+ypad+halfheight, mainRect.width() - xspace, halfheight);
 
-        // Rather ugly way to provide recent transaction display support - each time we paint a transaction we will check if
-        // it's Omni and override the values if so.  This will not scale at all, but since we're only ever doing 6 txns via the occasional
-        // repaint performance should be a non-issue and it'll provide the functionality short term while a better approach is devised.
-        uint256 hash;
-        hash.SetHex(index.data(TransactionTableModel::TxIDRole).toString().toStdString());
-        bool omniOverride = false, omniSendToSelf = false, valid = false, omniOutbound = true;
-        QString omniAmountStr;
-
-        // check pending
-        {
-            LOCK(cs_pending);
-
-            PendingMap::iterator it = my_pending.find(hash);
-            if (it != my_pending.end()) {
-                omniOverride = true;
-                valid = true; // assume all outbound pending are valid prior to confirmation
-                CMPPending *p_pending = &(it->second);
-                address = QString::fromStdString(p_pending->src);
-                if (isPropertyDivisible(p_pending->prop)) {
-                    omniAmountStr = QString::fromStdString(FormatDivisibleShortMP(p_pending->amount) + getTokenLabel(p_pending->prop));
-                } else {
-                    omniAmountStr = QString::fromStdString(FormatIndivisibleMP(p_pending->amount) + getTokenLabel(p_pending->prop));
-                }
-                // override amount for cancels
-                if (p_pending->type == MSC_TYPE_SEND_ALL) {
-                    omniAmountStr = QString::fromStdString("N/A");
+            /** Rather ugly way to provide recent transaction display support - each time we paint a transaction we will check if it's Omni and override
+                the values if so.  Data is cached to improve performance.  Short-term hack until a better appraoch is devised. **/
+            uint256 hash;
+            hash.SetHex(index.data(TransactionTableModel::TxIDRole).toString().toStdString());
+            bool omniOverride = false, omniSendToSelf = false, valid = false, omniOutbound = true;
+            QString omniAmountStr;
+            {
+                LOCK(cs_pending);
+                PendingMap::iterator it = my_pending.find(hash);
+                if (it != my_pending.end()) {
+                    omniOverride = true;
+                    valid = true; // assume all outbound pending are valid prior to confirmation
+                    CMPPending *p_pending = &(it->second);
+                    address = QString::fromStdString(p_pending->src);
+                    if (p_pending->type == MSC_TYPE_CREATE_PROPERTY_FIXED) {
+                        omniAmountStr = QString::fromStdString(FormatByType(p_pending->amount, 1) +  " NEW TOKENS");
+                    } else if (p_pending->type == MSC_TYPE_CREATE_PROPERTY_MANUAL || p_pending->type == MSC_TYPE_CLOSE_CROWDSALE) {
+                        omniAmountStr = QString::fromStdString("N/A");
+                    } else {
+                        omniAmountStr = QString::fromStdString(FormatMP(p_pending->prop, p_pending->amount) + getTokenLabel(p_pending->prop));
+                    }
                 }
             }
-        }
-
-        // check cache (avoid reparsing the same transactions repeatedly over and over on repaint)
-        std::map<uint256, OverviewCacheEntry>::iterator cacheIt = recentCache.find(hash);
-        if (cacheIt != recentCache.end()) {
-            OverviewCacheEntry txEntry = cacheIt->second;
-            address = txEntry.address;
-            valid = txEntry.valid;
-            omniSendToSelf = txEntry.sendToSelf;
-            omniOutbound = txEntry.outbound;
-            omniAmountStr = txEntry.amount;
-            omniOverride = true;
-            amount = 0;
-        } else { // cache miss, check database
-            if (p_txlistdb->exists(hash)) {
+            std::map<uint256, OverviewCacheEntry>::iterator cacheIt = recentCache.find(hash);
+            if (cacheIt != recentCache.end()) {
+                OverviewCacheEntry txEntry = cacheIt->second;
+                address = txEntry.address;
+                valid = txEntry.valid;
+                omniSendToSelf = txEntry.sendToSelf;
+                omniOutbound = txEntry.outbound;
+                omniAmountStr = txEntry.amount;
+                omniOverride = true;
+                amount = 0;
+            } else if (p_txlistdb->exists(hash)) {
                 omniOverride = true;
                 amount = 0;
                 CTransaction wtx;
@@ -168,63 +159,50 @@ public:
                             if (0 == parseRC) {
                                 if (mp_obj.interpret_Transaction()) {
                                     valid = getValidMPTX(hash);
-                                    uint32_t omniPropertyId = mp_obj.getProperty();
-                                    int64_t omniAmount = mp_obj.getAmount();
-                                    bool divis = isPropertyDivisible(omniPropertyId);
-                                    std::string tokenLabel = getTokenLabel(omniPropertyId);
-                                    if (omniPropertyId == 0) {
-                                        tokenLabel = " NEW TOKENS";
-                                        if (mp_obj.getPropertyType() == MSC_PROPERTY_TYPE_INDIVISIBLE) {
-                                            divis = false;
+                                    if (mp_obj.getType() == MSC_TYPE_CLOSE_CROWDSALE || mp_obj.getType() == MSC_TYPE_CREATE_PROPERTY_MANUAL || mp_obj.getType() == MSC_TYPE_CREATE_PROPERTY_VARIABLE) {
+                                        omniAmountStr = "N/A";
+                                    } else {
+                                        std::string tokenLabel = (mp_obj.getProperty() == 0) ? " TOKENS" : getTokenLabel(mp_obj.getProperty());
+                                        if (mp_obj.getType() == MSC_TYPE_CREATE_PROPERTY_FIXED) {
+                                            omniAmountStr = QString::fromStdString(FormatByType(mp_obj.getAmount(), mp_obj.getPropertyType()) + tokenLabel);
                                         } else {
-                                            divis = true;
+                                            omniAmountStr = QString::fromStdString(FormatMP(mp_obj.getProperty(), mp_obj.getAmount()) + tokenLabel);
                                         }
                                     }
-                                    if (divis) {
-                                        omniAmountStr = QString::fromStdString(FormatDivisibleShortMP(omniAmount) + tokenLabel);
-                                    } else {
-                                        omniAmountStr = QString::fromStdString(FormatIndivisibleMP(omniAmount) + tokenLabel);
-                                    }
+                                    address = QString::fromStdString(mp_obj.getSender());
                                     if (!mp_obj.getReceiver().empty()) {
                                         if (IsMyAddress(mp_obj.getReceiver())) {
+                                            address = QString::fromStdString(mp_obj.getReceiver());
                                             omniOutbound = false;
-                                            if (IsMyAddress(mp_obj.getSender())) omniSendToSelf = true;
+                                            if (IsMyAddress(mp_obj.getSender())) {
+                                                omniSendToSelf = true;
+                                            }
                                         }
-                                        address = QString::fromStdString(mp_obj.getReceiver());
-                                    } else {
-                                        address = QString::fromStdString(mp_obj.getSender());
                                     }
                                 }
+                                OverviewCacheEntry newEntry;
+                                newEntry.valid = valid;
+                                newEntry.sendToSelf = omniSendToSelf;
+                                newEntry.outbound = omniOutbound;
+                                newEntry.address = address;
+                                newEntry.amount = omniAmountStr;
+                                recentCache.insert(std::make_pair(hash, newEntry));
                             }
-
-                            // override amount for cancels
-                            if (mp_obj.getType() == MSC_TYPE_SEND_ALL) {
-                                omniAmountStr = QString::fromStdString("N/A");
-                            }
-
-                            // insert into cache
-                            OverviewCacheEntry newEntry;
-                            newEntry.valid = valid;
-                            newEntry.sendToSelf = omniSendToSelf;
-                            newEntry.outbound = omniOutbound;
-                            newEntry.address = address;
-                            newEntry.amount = omniAmountStr;
-                            recentCache.insert(std::make_pair(hash, newEntry));
                         }
                     }
                 }
             }
-        }
-
-        if (omniOverride) {
-            if (!valid) {
-                icon = QIcon(":/icons/omnitxinvalid");
-            } else {
-                icon = QIcon(":/icons/omnitxout");
-                if (!omniOutbound) icon = QIcon(":/icons/omnitxin");
-                if (omniSendToSelf) icon = QIcon(":/icons/omnitxinout");
+            if (omniOverride) {
+                if (!valid) {
+                    icon = QIcon(":/icons/omnitxinvalid");
+                } else {
+                    icon = QIcon(":/icons/omnitxout");
+                    if (!omniOutbound) icon = QIcon(":/icons/omnitxin");
+                    if (omniSendToSelf) icon = QIcon(":/icons/omnitxinout");
+                }
             }
-        }
+            /** End temp override for Omni transactions **/
+
 
         icon = platformStyle->SingleColorIcon(icon);
         icon.paint(painter, decorationRect);
