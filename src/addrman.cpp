@@ -97,6 +97,7 @@ CAddrInfo* CAddrMan::Create(const CAddress& addr, const CNetAddr& addrSource, in
     return &mapInfo[nId];
 }
 
+//Swap random implementation
 void CAddrMan::SwapRandom(unsigned int nRndPos1, unsigned int nRndPos2)
 {
     if (nRndPos1 == nRndPos2)

@@ -9,6 +9,7 @@
 
 const std::string CURRENCY_UNIT = "LTC";
 
+//Get rate implementation
 CFeeRate::CFeeRate(const CAmount& nFeePaid, size_t nBytes_)
 {
     assert(nBytes_ <= uint64_t(std::numeric_limits<int64_t>::max()));
@@ -20,6 +21,7 @@ CFeeRate::CFeeRate(const CAmount& nFeePaid, size_t nBytes_)
         nSatoshisPerK = 0;
 }
 
+//Get fee implementation
 CAmount CFeeRate::GetFee(size_t nBytes_) const
 {
     assert(nBytes_ <= uint64_t(std::numeric_limits<int64_t>::max()));
