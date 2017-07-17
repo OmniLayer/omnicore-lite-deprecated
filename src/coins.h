@@ -126,6 +126,7 @@ public:
         Cleanup();
     }
 
+    //swap implementation
     void swap(CCoins &to) {
         std::swap(to.fCoinBase, fCoinBase);
         to.vout.swap(vout);
