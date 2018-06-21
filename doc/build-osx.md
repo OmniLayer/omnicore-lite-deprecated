@@ -16,9 +16,10 @@ Then install [Homebrew](http://brew.sh).
 Dependencies
 ----------------------
 
-    brew install automake berkeley-db4 libtool boost --c++11 miniupnpc openssl pkg-config homebrew/versions/protobuf260 --c++11 qt5 libevent
+    brew install automake berkeley-db4 libtool miniupnpc openssl pkg-config homebrew/versions/protobuf260 --c++11 qt5 libevent
 
 NOTE: Building with Qt4 is still supported, however, could result in a broken UI. Building with Qt5 is recommended.
+NOTE: Removed "boost --c++11" from dependencies because homebrew it's no longer supported and breaks make
 
 Build Litecoin Core
 ------------------------
